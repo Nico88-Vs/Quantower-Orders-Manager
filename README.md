@@ -1,0 +1,2 @@
+# QTStrategies
+Developing Some Strategies
