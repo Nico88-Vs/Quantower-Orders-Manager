@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Platforms>AnyCPU</Platforms>
+    <AlgoType>Strategy</AlgoType>
+    <AssemblyName>DivergentStrV0_1</AssemblyName>
+    <RootNamespace>DivergentStrV0_1</RootNamespace>
+    <StartAction>Program</StartAction>
+    <StartProgram>A:\Quantower\TradingPlatform\v1.140.14\Console.StarterNew.exe</StartProgram>
+    <StartArguments>--address 127.0.0.1 --port 55756</StartArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>A:\Quantower\TradingPlatform\v1.140.14\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>A:\Quantower\TradingPlatform\v1.140.14\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="TradingPlatform.BusinessLayer">
+      <HintPath>A:\Quantower\TradingPlatform\v1.140.14\bin\TradingPlatform.BusinessLayer.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

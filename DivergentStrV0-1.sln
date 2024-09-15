@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35122.118
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DivergentStrV0-1", "DivergentStrV0-1.csproj", "{1DEE3931-0E2D-4E2B-8128-2DC192D4F850}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1DEE3931-0E2D-4E2B-8128-2DC192D4F850}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DEE3931-0E2D-4E2B-8128-2DC192D4F850}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DEE3931-0E2D-4E2B-8128-2DC192D4F850}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DEE3931-0E2D-4E2B-8128-2DC192D4F850}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AFD21E36-7B2B-4199-AE53-594C595AC225}
+	EndGlobalSection
+EndGlobal
