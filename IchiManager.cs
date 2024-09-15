@@ -6,10 +6,22 @@ using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1
 {
+
     public class IchiManager
     {
         public CloudSeries CloudSeries { get; set; }
         public List<TF> TFs { get; set; }
+        private Indicator _ichi;
+
+        public event EventHandler<GapEventArgs> GapDetected;
+
+        public IchimokuCloudScenario Scenario 
+        { 
+            get
+            {
+                return CloudSeries.Scenario; 
+            }
+        }
 
         private HistoricalData _hd;
         private int tenkanperiod;
@@ -30,6 +42,7 @@ namespace DivergentStrV0_1
             TF slow = new TF(TF.TimeFrame.Slow, multiplaierSlow, Ichimoku, Convert.ToInt32(IchiLineIndex.Senkou_SpanA2), Convert.ToInt32(IchiLineIndex.Senkou_SpanB2));
             TFs.Add(slow);
 
+            this._ichi = Ichimoku;
 
             this.CloudSeries = new CloudSeries(this._hd, fast, mid, slow);
 
@@ -52,6 +65,35 @@ namespace DivergentStrV0_1
         {
             foreach (TF tf in TFs)
                 this.CloudSeries.Update(tf);
+
+
+            if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.LonGap)].GetValue() > 0)
+            {
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Fast, Side.Buy);
+                this.OnGap(args);
+            }
+            if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.ShortGap)].GetValue() > 0)
+            {
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Fast, Side.Sell);
+                this.OnGap(args);
+            }
+            if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.LonGap_Bigger)].GetValue() < 100000)
+            {
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Mid, Side.Buy);
+                this.OnGap(args);
+            }
+            if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.ShortGap_Bigger)].GetValue() < 100000)
+            {
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Mid, Side.Sell);
+                this.OnGap(args);
+            }
         }
+                   
+        public virtual void OnGap(GapEventArgs e)
+        {
+            GapDetected?.Invoke(this, e);
+        }
+
+
     }
 }

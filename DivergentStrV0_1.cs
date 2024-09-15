@@ -101,7 +101,10 @@ namespace DivergentStrV0_1
             this.PositionManager.Stop();
 
             if (this.IchiManager != null)
+            {
+                this.IchiManager.GapDetected -= this.IchiManager_GapDetected;
                 this.IchiManager.Stop();
+            }
 
             if (this.OrderPlacingManager != null)
                 this.OrderPlacingManager.Dispose();
@@ -226,6 +229,7 @@ namespace DivergentStrV0_1
                 CumulativeAbsorbtion = this.GenerateIndicator("CumulativeAbsobtion", DeltaSettings);
 
                 this.IchiManager = new IchiManager(this.Ichimoku, this.hd);
+                this.IchiManager.GapDetected += this.IchiManager_GapDetected;
 
                 this.readyToGo = true;
             }
@@ -299,11 +303,13 @@ namespace DivergentStrV0_1
             //}
             #endregion
         }
-       
+
+        private void IchiManager_GapDetected(object sender, GapEventArgs e) => throw new NotImplementedException();
+
         #endregion
 
         #region utils
-      
+
         private void TestTrade(Side side, double price, double Slprice, double tPrices = 0)
         {
             if (side == Side.Buy && this.inLong)
