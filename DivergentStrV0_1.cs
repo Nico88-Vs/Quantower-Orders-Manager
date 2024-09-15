@@ -36,8 +36,9 @@ namespace DivergentStrV0_1
         [InputParameter("Absorbtion Period", 4)]
         public Period _absorbtionPeriod = Period.MIN30;
 
+        public IchiManager IchiManager { get; set; }
+        public PositionManager PositionManager { get; set; }
         OrderManager OrderPlacingManager { get; set; }
-        CloudSeries CloudSeries { get; set; }
         HistoricalData hd;
         HistoryType _historyType;
         bool Hdinitilized = false;
@@ -49,19 +50,7 @@ namespace DivergentStrV0_1
         int signCount_Short;
         bool inLong = false;
         bool inShort = false;
-        Order currentLongOrder;
-        Order currentShortOrder;
-        Position currentLongPosition;
-        Position currentShortPosition;
-        Trade currentLongTrade;
-        Trade currentShorTrade;
-        int longCount = 0;
-        int shortCount = 0;
-
-
-        List<TF> TFs;
-
-
+       
         double procesPercent => this.hd != null &&
                               this.hd.VolumeAnalysisCalculationProgress != null ? this.hd.VolumeAnalysisCalculationProgress.ProgressPercent : 0;
         private bool readyToGo;
@@ -84,7 +73,7 @@ namespace DivergentStrV0_1
             //TODO: non sto inserendo il bid ask type
         }
 
-        #region Main Methods/Events
+        #region Main Methods/Lifecycle
         //HACK seams useless
         protected override void OnCreated() { }
         protected override void OnRun()
@@ -96,75 +85,37 @@ namespace DivergentStrV0_1
             Computator.TradeDetected += this.Computator_TradeDetected;
             this._Symbol.NewLast += this._Symbol_NewLast;
             this._Symbol.NewQuote += this._Symbol_NewQuote;
-            Core.Instance.PositionAdded += Instance_PositionAdded;
-            Core.Instance.PositionRemoved += this.Instance_PositionRemoved;
-            Core.Instance.OrderAdded += this.Instance_OrderAdded;
-            Core.Instance.TradeAdded += this.Instance_TradeAdded;
-        }
 
-        private void Instance_TradeAdded(Trade obj)
+            this.PositionManager = new PositionManager();
+        }
+        protected override void OnStop()
         {
-            if (obj.PositionImpactType == PositionImpactType.Open)
+            this.readyToGo = false;
+            if (this.hd != null)
             {
-                if (obj.Side == Side.Buy)
-                {
-                    this.currentLongOrder = Core.Instance.Orders.FirstOrDefault(x => x.Id == obj.Id);
-                    this.currentLongTrade = obj;
-                }
-                else
-                {
-                    this.currentShortOrder = Core.Instance.Orders.FirstOrDefault(x => x.Id == obj.Id);
-                    this.currentShorTrade = obj;
-                }
+                this.hd.NewHistoryItem -= this.Hd_NewHistoryItem;
+                this.hd.VolumeAnalysisCalculationProgress.ProgressChanged -= this.VolumeAnalysisCalculationProgress_ProgressChanged;
             }
-        }
 
+            Computator.TradeDetected -= this.Computator_TradeDetected;
+            this.PositionManager.Stop();
+
+            if (this.IchiManager != null)
+                this.IchiManager.Stop();
+
+            if (this.OrderPlacingManager != null)
+                this.OrderPlacingManager.Dispose();
+        }
+        protected override void OnRemove()
+        {
+            //TODO Possibilita di flattare o simili
+        }
         #endregion
 
         #region events
 
-        private void Instance_OrderAdded(Order obj)
-        {
-            //TODO:sostituire bool con enum
-            //if (obj.Side == Side.Buy)
-            //{
-            //    this.inLong = true;
-            //}
-
-            //if (obj.Side == Side.Sell)
-            //{
-            //    this.inShort = true;
-            //}
-        }
-        private void Instance_PositionRemoved(Position obj)
-        {
-            var pnlTicks = obj.GrossPnLTicks;
-            if (obj.Side == Side.Buy)
-                this.inLong = false;
-
-            if (obj.Side == Side.Sell)
-                this.inShort = false;
-        }
         private void Computator_TradeDetected(object sender, NewTradEventArg e)
         {
-        }
-        private void Instance_PositionAdded(Position obj)
-        {
-            //var s = Core.Instance.Orders;
-            //var t = this.currentShortOrder;
-            //var r = this.currentLongOrder;
-            //var g = s.FirstOrDefault(x => x.Id == r.Id);
-            //if (obj.Side == Side.Buy && this.currentLongOrder.PositionId == obj.Id)
-            //{
-            //    this.inLong = true;
-            //    this.currentLongPosition = obj;
-            //}
-            
-            //if (obj.Side == Side.Sell && this.currentShortOrder.PositionId == obj.Id)
-            //{
-            //   this.inShort = true;
-            //   this.currentShortPosition = obj;
-            //}
         }
         private void _Symbol_NewLast(Symbol symbol, Last last)
         {
@@ -274,25 +225,12 @@ namespace DivergentStrV0_1
 
                 CumulativeAbsorbtion = this.GenerateIndicator("CumulativeAbsobtion", DeltaSettings);
 
-                TFs = new List<TF>();
-                //TODO: Settings Hardcoded 
-                TF fast = new TF(TF.TimeFrame.Fast, 1, Ichimoku, Convert.ToInt32(IchiLineIndex.Senkou_SpanA0), Convert.ToInt32(IchiLineIndex.Senkou_SpanB0));
-                TFs.Add(fast);
-                TF mid = new TF(TF.TimeFrame.Mid, 5, Ichimoku, Convert.ToInt32(IchiLineIndex.Senkou_SpanA), Convert.ToInt32(IchiLineIndex.Senkou_SpanB));
-                TFs.Add(mid);
-                TF slow = new TF(TF.TimeFrame.Slow, 30, Ichimoku, Convert.ToInt32(IchiLineIndex.Senkou_SpanA2), Convert.ToInt32(IchiLineIndex.Senkou_SpanB2));
-                TFs.Add(slow);
-
-
-                this.CloudSeries = new CloudSeries(this.hd, fast, mid, slow);
-
-                this.CloudSeries.GenerateCloud(TFs);
+                this.IchiManager = new IchiManager(this.Ichimoku, this.hd);
 
                 this.readyToGo = true;
             }
 
-            foreach (TF tf in TFs)
-                this.CloudSeries.Update(tf);
+            this.IchiManager.Update();
 
             //Thread.Sleep(200); Si potrebbero evitare computazioni volumetriche 
             var buy = Computator.ComputeSignon(this.Ichimoku.LinesSeries.ToList(), ref signCount_Long, Side.Buy);
@@ -319,13 +257,15 @@ namespace DivergentStrV0_1
                 if (Computator.VolumeDetect(Volume.LinesSeries.ToList()))
                 {
                     //TODO:tenkanperiod hardcoded
-                    var potential_tp = this.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BEARISH ? this.CloudSeries.SlowTF.ReturnCurrent(cloudLineReference.fast, 26) : 0;
+                    //var potential_tp = this.IchiManager.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BEARISH ? this.CloudSeries.SlowTF.ReturnCurrent(cloudLineReference.fast, 26) : 0;
                     int x = Computator.DivergenceDetect(items);
                     Core.Instance.Loggers.Log($"New Trade almost detected {items[x][PriceType.Close]}");
                     if (x >= 0)
                     {
                         Core.Instance.Loggers.Log($"New Trade at price close {items[x][PriceType.Close]}");
-                        this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low], potential_tp);
+                        //TODO:sostituzione
+                        //this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low], potential_tp);
+                        this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low]);
                     }
 
                 }
@@ -359,27 +299,7 @@ namespace DivergentStrV0_1
             //}
             #endregion
         }
-        protected override void OnStop()
-        {
-            this.readyToGo = false;
-            if (this.hd != null)
-            {
-                this.hd.NewHistoryItem -= this.Hd_NewHistoryItem;
-                this.hd.VolumeAnalysisCalculationProgress.ProgressChanged -= this.VolumeAnalysisCalculationProgress_ProgressChanged;
-            }
-
-            Computator.TradeDetected -= this.Computator_TradeDetected;
-            Core.Instance.PositionAdded -= this.Instance_PositionAdded;
-            Core.Instance.PositionRemoved -= this.Instance_PositionRemoved;
-            Core.Instance.OrderAdded -= this.Instance_OrderAdded;
-
-            if (this.OrderPlacingManager != null)
-                this.OrderPlacingManager.Dispose();
-        }
-        protected override void OnRemove()
-        {
-            //TODO Possibilita di flattare o simili
-        }
+       
         #endregion
 
         #region utils
@@ -431,13 +351,11 @@ namespace DivergentStrV0_1
                 {
                     this.inLong = true;
                     this.signCount_Long = 0;
-                    this.longCount++;
                 }
                 else if (side == Side.Sell)
                 {
                     this.inShort = true;
                     this.signCount_Short = 0;
-                    this.shortCount++;
                 } 
             }
                 
@@ -474,8 +392,8 @@ namespace DivergentStrV0_1
             base.OnInitializeMetrics(meter);
             
             meter.CreateObservableCounter("Balance", () => this._Account.Balance > 0 ? this._Account.Balance : 0);
-            meter.CreateObservableCounter("LongCount", () => this.longCount > 0 ? this.longCount : 0);
-            meter.CreateObservableCounter("ShortCount", () => this.shortCount > 0 ? this.shortCount : 0);
+            meter.CreateObservableCounter("LongCount", () => this.PositionManager.LongPositionsCount > 0 ? this.PositionManager.LongPositionsCount : 0);
+            meter.CreateObservableCounter("ShortCount", () => this.PositionManager.ShortPositionsCount > 0 ? this.PositionManager.ShortPositionsCount : 0);
             meter.CreateObservableCounter("in Long", () => this.commutateBool(this.inLong) );
             meter.CreateObservableCounter("in short", () => this.commutateBool(this.inShort), description:"balala");
             

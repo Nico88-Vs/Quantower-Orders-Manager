@@ -25,6 +25,9 @@ namespace DivergentStrV0_1
         private int _shortTradeCount = 0;
         private int _longTradeCount = 0;
 
+        public int ShortPositionsCount { get; set; } = 0;
+        public int LongPositionsCount { get; set; } = 0;
+
         public PositionManagerStatus LongStatus 
         { 
             get 
@@ -125,6 +128,7 @@ namespace DivergentStrV0_1
                     {
                         this._longTradeCount = 0;
                         this.currentLongPosition = null;
+                        this.LongPositionsCount++;
                     }
                     break;
                 case Side.Sell:
@@ -132,6 +136,7 @@ namespace DivergentStrV0_1
                     {
                         this._shortTradeCount = 0;
                         this.currentShortPosition = null;
+                        this.ShortPositionsCount++;
                     }
                     break;
             }
