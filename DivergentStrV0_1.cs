@@ -59,7 +59,7 @@ namespace DivergentStrV0_1
         int shortCount = 0;
 
 
-        List<TF> tFs;
+        List<TF> TFs;
 
 
         double procesPercent => this.hd != null &&
@@ -274,24 +274,24 @@ namespace DivergentStrV0_1
 
                 CumulativeAbsorbtion = this.GenerateIndicator("CumulativeAbsobtion", DeltaSettings);
 
-                tFs = new List<TF>();
+                TFs = new List<TF>();
                 //TODO: Settings Hardcoded 
                 TF fast = new TF(TF.TimeFrame.Fast, 1, Ichimoku, Convert.ToInt32(IchiLineIndex.Senkou_SpanA0), Convert.ToInt32(IchiLineIndex.Senkou_SpanB0));
-                tFs.Add(fast);
+                TFs.Add(fast);
                 TF mid = new TF(TF.TimeFrame.Mid, 5, Ichimoku, Convert.ToInt32(IchiLineIndex.Senkou_SpanA), Convert.ToInt32(IchiLineIndex.Senkou_SpanB));
-                tFs.Add(mid);
+                TFs.Add(mid);
                 TF slow = new TF(TF.TimeFrame.Slow, 30, Ichimoku, Convert.ToInt32(IchiLineIndex.Senkou_SpanA2), Convert.ToInt32(IchiLineIndex.Senkou_SpanB2));
-                tFs.Add(slow);
+                TFs.Add(slow);
 
 
                 this.CloudSeries = new CloudSeries(this.hd, fast, mid, slow);
 
-                this.CloudSeries.GenerateCloud(tFs);
+                this.CloudSeries.GenerateCloud(TFs);
 
                 this.readyToGo = true;
             }
 
-            foreach (TF tf in tFs)
+            foreach (TF tf in TFs)
                 this.CloudSeries.Update(tf);
 
             //Thread.Sleep(200); Si potrebbero evitare computazioni volumetriche 

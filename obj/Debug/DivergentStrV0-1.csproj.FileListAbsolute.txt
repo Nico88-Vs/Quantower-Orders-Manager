@@ -1,0 +1,13 @@
+A:\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.deps.json
+A:\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.dll
+A:\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.pdb
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0-1.csproj.AssemblyReference.cache
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0-1.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0-1.AssemblyInfoInputs.cache
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0-1.AssemblyInfo.cs
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0-1.csproj.CoreCompileInputs.cache
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0-1.sourcelink.json
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0_1.dll
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\refint\DivergentStrV0_1.dll
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0_1.pdb
+C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\ref\DivergentStrV0_1.dll
