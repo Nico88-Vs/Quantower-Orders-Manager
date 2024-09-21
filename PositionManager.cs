@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1
@@ -11,320 +10,378 @@ namespace DivergentStrV0_1
     public enum PositionManagerStatus
     {
         Waiting,
-        PartialWating,
+        PartialWaiting, // Correzione di "PartialWating"
         FullyInTrade,
         OverTrade
     }
-   
-    public class PositionManager
+
+    public static class PositionManager
     {
         #region Attributes
-        private int _shortTradeLimit;
-        private int _longTradeLimit;
-        
-        private int _shortTradeCount = 0;
-        private int _longTradeCount = 0;
+        private static int _shortTradeLimit;
+        private static int _longTradeLimit;
 
-        public int ShortPositionsCount { get; set; } = 0;
-        public int LongPositionsCount { get; set; } = 0;
+        private static int _shortTradeCount = 0;
+        private static int _longTradeCount = 0;
 
-        public PositionManagerStatus LongStatus 
-        { 
-            get 
-            {
-                if (this._longTradeCount == 0)
-                    return PositionManagerStatus.Waiting;
-                if (this._longTradeCount == this._longTradeLimit)
-                    return PositionManagerStatus.FullyInTrade;
-                if (this._longTradeCount > this._longTradeLimit)
-                {
-                    this.Log("Overtrading Detected", LoggingLevel.Error);
-                    return PositionManagerStatus.OverTrade;
-                }
-                else
-                    return PositionManagerStatus.PartialWating;
-            }   
-        }
-        public PositionManagerStatus ShortStatus
+        private static double _totalQuantityPerSide;
+
+        public static int ShortPositionsCount { get; set; } = 0;
+        public static int LongPositionsCount { get; set; } = 0;
+
+        public static PositionManagerStatus LongStatus
         {
             get
             {
-                if (this._shortTradeCount == 0)
+                if (_longTradeCount == 0)
                     return PositionManagerStatus.Waiting;
-                if (this._shortTradeCount == this._shortTradeLimit)
+                if (_longTradeCount == _longTradeLimit)
                     return PositionManagerStatus.FullyInTrade;
-                if (this._shortTradeCount > this._shortTradeLimit)
+                if (_longTradeCount > _longTradeLimit)
                 {
-                    this.Log("Overtrading Detected", LoggingLevel.Error);
+                    Log("Overtrading Detected", LoggingLevel.Error);
                     return PositionManagerStatus.OverTrade;
                 }
-                else
-                    return PositionManagerStatus.PartialWating;
+                return PositionManagerStatus.PartialWaiting;
             }
         }
-        public List<Order> currentLongOrder { get; set; }
-        public List<Order> currentShortOrder { get; set; }
-        public Position currentLongPosition { get; set; }
-        public Position currentShortPosition { get; set; }
+        public static PositionManagerStatus ShortStatus
+        {
+            get
+            {
+                if (_shortTradeCount == 0)
+                    return PositionManagerStatus.Waiting;
+                if (_shortTradeCount == _shortTradeLimit)
+                    return PositionManagerStatus.FullyInTrade;
+                if (_shortTradeCount > _shortTradeLimit)
+                {
+                    Log("Overtrading Detected", LoggingLevel.Error);
+                    return PositionManagerStatus.OverTrade;
+                }
+                return PositionManagerStatus.PartialWaiting;
+            }
+        }
 
-        private List<PlaceOrderRequestParameters> _TempShortOrders;
-        private List<PlaceOrderRequestParameters> _TempLongOrders;
+        public static List<Order> currentLongOrder { get; set; }
+        public static List<Order> currentShortOrder { get; set; }
+        public static Position currentLongPosition { get; set; }
+        public static Position currentShortPosition { get; set; }
+        public static Account _Account { get; set; }
+        public static Symbol _Symbol { get; set; }
+
+        private static List<PlaceOrderRequestParameters> _TempShortOrders;
+        private static List<PlaceOrderRequestParameters> _TempLongOrders;
+        #endregion
+
+        #region Init
+        public static void Init(double totalQuantitSide, Symbol symbol, Account account, int shortOrderLimit = 3, int longOrderLimit = 3)
+        {
+            _totalQuantityPerSide = totalQuantitSide;
+
+            _longTradeLimit = longOrderLimit;
+            _shortTradeLimit = shortOrderLimit;
+
+            _TempShortOrders = new List<PlaceOrderRequestParameters>();
+            _TempLongOrders = new List<PlaceOrderRequestParameters>();
+
+            currentLongOrder = new List<Order>();
+            currentShortOrder = new List<Order>();
+
+            _Account = account;
+            _Symbol = symbol;
+
+            Core.Instance.PositionRemoved += Instance_PositionRemoved;
+            Core.Instance.OrderAdded += Instance_OrderAdded;
+            Core.Instance.TradeAdded += Instance_TradeAdded;
+            Core.Instance.OrderRemoved += Instance_OrderRemoved;
+            Core.Instance.OrdersHistoryAdded += Instance_OrdersHistoryAdded;
+        }
+
+        private static void Instance_OrdersHistoryAdded(OrderHistory obj)
+        {
+            var y = obj.State;
+        }
         #endregion
 
         #region Lifecycle
-        public PositionManager(int shortOrderLimit = 3, int longOrderLimit=3)
+        public static void Stop()
         {
-            this._longTradeLimit = longOrderLimit;
-            this._shortTradeLimit = shortOrderLimit;
-
-            this._TempShortOrders = new List<PlaceOrderRequestParameters>();
-            this._TempLongOrders = new List<PlaceOrderRequestParameters>();
-
-            this.currentLongOrder = new List<Order>();
-            this.currentShortOrder = new List<Order>();
-
-            Core.Instance.PositionRemoved += this.Instance_PositionRemoved;
-            Core.Instance.OrderAdded += this.Instance_OrderAdded;
-            Core.Instance.TradeAdded += this.Instance_TradeAdded;
-            Core.Instance.OrderRemoved += this.Instance_OrderRemoved;
+            Core.Instance.PositionRemoved -= Instance_PositionRemoved;
+            Core.Instance.OrderAdded -= Instance_OrderAdded;
+            Core.Instance.TradeAdded -= Instance_TradeAdded;
         }
 
-        private void Instance_OrderRemoved(Order obj)
+        private static void Instance_OrderRemoved(Order obj)
         {
             switch (obj.Side)
             {
                 case Side.Buy:
-                    if (currentLongOrder.Contains(obj))
+                    if (currentLongOrder.Contains(obj) & obj.RemainingQuantity == 0)
                     {
-                        this.currentLongOrder.Remove(obj);
-                        this._longTradeCount--;
+                        //currentLongOrder.Remove(obj);
+                        _longTradeCount--;
                     }
                     break;
                 case Side.Sell:
-                    if (currentShortOrder.Contains(obj))
+                    if (currentShortOrder.Contains(obj) & obj.RemainingQuantity == 0)
                     {
-                        this.currentShortOrder.Remove(obj);
-                        this._shortTradeCount--;
+                        //currentShortOrder.Remove(obj);
+                        _shortTradeCount--;
                     }
                     break;
             }
-        }
-
-        public void Stop()
-        {
-            Core.Instance.PositionRemoved -= this.Instance_PositionRemoved;
-            Core.Instance.OrderAdded -= this.Instance_OrderAdded;
-            Core.Instance.TradeAdded -= this.Instance_TradeAdded;
         }
         #endregion
 
         #region Events
-        private void Instance_PositionRemoved(Position obj)
+        private static void Instance_PositionRemoved(Position obj)
         {
-            switch (obj.Side)
-            {
-                case Side.Buy:
-                    if (obj == this.currentLongPosition)
-                    {
-                        this._longTradeCount = 0;
-                        this.currentLongPosition = null;
-                        this.LongPositionsCount++;
-                    }
-                    break;
-                case Side.Sell:
-                    if (obj == this.currentShortPosition)
-                    {
-                        this._shortTradeCount = 0;
-                        this.currentShortPosition = null;
-                        this.ShortPositionsCount++;
-                    }
-                    break;
-            }
-            
+            //switch (obj.Side)
+            //{
+            //    case Side.Buy:
+            //        if (obj == currentLongPosition)
+            //        {
+            //            _longTradeCount = 0;
+            //            currentLongPosition = null;
+            //            LongPositionsCount++;
+            //        }
+            //        break;
+            //    case Side.Sell:
+            //        if (obj == currentShortPosition)
+            //        {
+            //            _shortTradeCount = 0;
+            //            currentShortPosition = null;
+            //            ShortPositionsCount++;
+            //        }
+            //        break;
+            //}
         }
-        private void Instance_TradeAdded(Trade obj)
+
+        private static void Instance_TradeAdded(Trade obj)
         {
-            Order temp_or = Core.Instance.Orders.FirstOrDefault(x => x.Id == obj.Id);
+            //Order temp_or = Core.Instance.Orders.FirstOrDefault(x => x.Id == obj.OrderId);
 
-            if (obj.PositionImpactType == PositionImpactType.Open)
-            {
-                if (temp_or.Comment != "new trade")
-                    return;
+            //if (obj.PositionImpactType == PositionImpactType.Open)
+            //{
+            //    if (temp_or.Comment != "new trade")
+            //        return;
 
-                if (obj.Side == Side.Buy)
-                {
-                    if (!this.currentLongOrder.Contains(temp_or))
-                    {
-                        this.currentLongOrder.Add(temp_or);
-                        this.FindPosition(temp_or, Side.Buy);
-                    }
+            //    if (obj.Side == Side.Buy)
+            //    {
+            //        if (!currentLongOrder.Contains(temp_or))
+            //        {
+            //            currentLongOrder.Add(temp_or);
+            //            FindPosition(temp_or, Side.Buy);
+            //        }
 
-                }
-                else
-                {
-                    if (!this.currentShortOrder.Contains(temp_or))
-                    {
-                        this.currentShortOrder.Add(temp_or);
-                        this.FindPosition(temp_or, Side.Sell);
-                    }
-                }
-            }
-            else if (obj.PositionImpactType == PositionImpactType.Close)
-            {
-                Side s = temp_or.Side;
-                bool contained = false;
+            //    }
+            //    else
+            //    {
+            //        if (!currentShortOrder.Contains(temp_or))
+            //        {
+            //            currentShortOrder.Add(temp_or);
+            //            FindPosition(temp_or, Side.Sell);
+            //        }
+            //    }
+            //}
+            //else if (obj.PositionImpactType == PositionImpactType.Close)
+            //{
+            //    Side s = temp_or.Side;
+            //    bool contained = false;
 
-                switch (s)
-                {
-                    case Side.Buy:
-                        contained = this.currentLongOrder.Contains(temp_or);
-                        break;
-                    case Side.Sell:
-                        contained = this.currentShortOrder.Contains(temp_or);
-                        break;
-                }
+            //    switch (s)
+            //    {
+            //        case Side.Buy:
+            //            contained = currentLongOrder.Contains(temp_or);
+            //            break;
+            //        case Side.Sell:
+            //            contained = currentShortOrder.Contains(temp_or);
+            //            break;
+            //    }
 
-                if (contained)
-                {
-                    switch (s)
-                    {
-                        case Side.Buy:
-                            this._longTradeCount--;
-                            break;
-                        case Side.Sell:
-                            this._shortTradeCount--;
-                            break;
-                    }
-                }
-                else
-                    this.Log($"Failed to find Position", LoggingLevel.Error);
-            }
+            //    if (contained)
+            //    {
+            //        switch (s)
+            //        {
+            //            case Side.Buy:
+            //                _longTradeCount--;
+            //                break;
+            //            case Side.Sell:
+            //                _shortTradeCount--;
+            //                break;
+            //        }
+            //    }
+            //    else
+            //        Log($"Failed to find Position", LoggingLevel.Error);
+            //}
         }
-        private void Instance_OrderAdded(Order obj)
+
+        private static void Instance_OrderAdded(Order obj)
         {
+            //TODO: comment hard coded
             if (obj.Comment == "new order")
+            {
                 switch (obj.Side)
                 {
                     case Side.Buy:
-                        this._longTradeCount++;
+                        if (!currentLongOrder.Contains(obj))
+                        {
+                            currentLongOrder.Add(obj);
+                            _longTradeCount++;
+                        }
                         break;
                     case Side.Sell:
-                        this._shortTradeCount++;
+                        if (!currentLongOrder.Contains(obj))
+                        {
+                            currentLongOrder.Add(obj);
+                            _shortTradeCount++;
+                        }
+
                         break;
                 }
+            }
         }
         #endregion
 
         #region Main Methods
-        public void AddTemporaryOrder(Side side, PlaceOrderRequestParameters requestParameters, string comment)
+        private static void AddTemporaryOrder(PlaceOrderRequestParameters requestParameters)
         {
-            var resoult = requestParameters;
-            resoult.Comment = comment;
-
-            switch (side)
+            switch (requestParameters.Side)
             {
                 case Side.Buy:
-                    this._TempLongOrders.Add(resoult);
+                    _TempLongOrders.Add(requestParameters);
                     break;
                 case Side.Sell:
-                    this._TempShortOrders.Add(resoult);
+                    _TempShortOrders.Add(requestParameters);
                     break;
             }
         }
 
-        public void PlaceTempOrder(string Comment, Side side)
+        public static void PlaceTempOrder(string Comment, Side side)
         {
             switch (side)
             {
                 case Side.Buy:
-                    if (this.LongStatus == PositionManagerStatus.FullyInTrade)
+                    if (LongStatus == PositionManagerStatus.FullyInTrade)
                         return;
                     break;
                 case Side.Sell:
-                    if (this.ShortStatus == PositionManagerStatus.FullyInTrade)
+                    if (ShortStatus == PositionManagerStatus.FullyInTrade)
                         return;
                     break;
             }
+
             int idx = -1;
-            bool proced = true;
+            bool proceed = true;
             try
             {
                 switch (side)
                 {
                     case Side.Buy:
-                        idx = this._TempLongOrders.IndexOf(_TempLongOrders.FirstOrDefault(x => x.Comment == Comment));
+                        idx = _TempLongOrders.IndexOf(_TempLongOrders.FirstOrDefault(x => x.Comment == Comment));
                         break;
                     case Side.Sell:
-                        idx = this._TempShortOrders.IndexOf(_TempShortOrders.FirstOrDefault(x => x.Comment == Comment));
+                        idx = _TempShortOrders.IndexOf(_TempShortOrders.FirstOrDefault(x => x.Comment == Comment));
                         break;
                 }
             }
             catch (Exception ex)
             {
-                proced = false;
-                this.Log($"Failed to find temp order at side {side.ToString()} with error {ex.Message}", LoggingLevel.Error);
+                proceed = false;
+                Log($"Failed to find temp order at side {side.ToString()} with error {ex.Message}", LoggingLevel.Error);
             }
             finally
             {
-                if (proced)
+                if (proceed && idx >= 0)
                 {
                     TradingOperationResultStatus res = TradingOperationResultStatus.Failure;
                     switch (side)
                     {
                         case Side.Buy:
-                            res = Core.Instance.PlaceOrder(this._TempLongOrders.ElementAt(idx)).Status;
+                            res = Core.Instance.PlaceOrder(_TempLongOrders.ElementAt(idx)).Status;
                             break;
                         case Side.Sell:
-                            res = Core.Instance.PlaceOrder(this._TempShortOrders.ElementAt(idx)).Status;
+                            res = Core.Instance.PlaceOrder(_TempShortOrders.ElementAt(idx)).Status;
                             break;
                     }
 
                     if (res == TradingOperationResultStatus.Failure)
-                        this.Log("Failed to place order", logleve: LoggingLevel.Trading);
+                        Log("Failed to place order", LoggingLevel.Trading);
                     else
-                        this.Log($"{side.ToString()} Order Placed ", logleve: LoggingLevel.Trading);
+                        Log($"{side.ToString()} Order Placed", LoggingLevel.Trading);
                 }
             }
         }
-        public void RemoveTempOrder(Order order, string aspettedComment)
+
+        public static void RemoveTempOrder(Order order, string expectedComment)
         {
             try
             {
-                Core.Instance.Orders.Where(x => x == order ).First(s => s.Comment == aspettedComment).Cancel();
+                Core.Instance.Orders.Where(x => x == order).First(s => s.Comment == expectedComment).Cancel();
             }
             catch (Exception ex)
             {
-
-                this.Log($"Failed to remove order with error {ex.Message}", LoggingLevel.Error);
+                Log($"Failed to remove order with error {ex.Message}", LoggingLevel.Error);
             }
         }
         #endregion
 
         #region Utils
-        private void Log(string message, LoggingLevel logleve) => Core.Instance.Loggers.Log(message, logleve);
-        private void FindPosition(Order order, Side side)
+        private static void Log(string message, LoggingLevel logLevel) => Core.Instance.Loggers.Log(message, logLevel);
+
+        public static void CreateRequest(Side side, double entryPrice, SlTpHolder sl, SlTpHolder tp, bool place_it = true, string comment = "new order")
+        {
+            
+            double quantity = side == Side.Buy ? _totalQuantityPerSide/_longTradeLimit : _totalQuantityPerSide/_shortTradeCount;
+
+
+            var placeHoldeReq = new PlaceOrderRequestParameters()
+            {
+                Account = _Account,
+                Symbol = _Symbol,
+                Side = side,
+                Quantity = RoundQuantity(quantity),
+                OrderTypeId = _Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).FirstOrDefault(x => x.Usage == OrderTypeUsage.All && x.Behavior == OrderTypeBehavior.Limit).Id,
+                TimeInForce = TimeInForce.Day,
+                Price = entryPrice,
+                StopLoss = sl,
+                TakeProfit = tp,
+                Comment = comment,
+            };
+
+            AddTemporaryOrder(placeHoldeReq);
+
+            if (place_it)
+                PlaceTempOrder(placeHoldeReq.Comment, placeHoldeReq.Side);
+        }
+
+        private static double RoundQuantity(double quantity)
+        {
+            return Math.Round(quantity / _Symbol.MinLot) * _Symbol.MinLot;
+        }
+
+        private static void FindPosition(Order order, Side side)
         {
             try
             {
-                Position p = Core.Instance.Positions.First(x => x.ConnectionId == order.ConnectionId & x.Side == order.Side
-                & x.Symbol.Id == order.Symbol.Id & x.OpenPrice == order.AverageFillPrice);
+                Position p = Core.Instance.Positions.First(x => x.ConnectionId == order.ConnectionId && x.Side == order.Side
+                && x.Symbol.Id == order.Symbol.Id && x.OpenPrice == order.AverageFillPrice);
 
                 switch (side)
                 {
                     case Side.Buy:
-                        this.currentLongPosition = p;
+                        currentLongPosition = p;
                         break;
                     case Side.Sell:
-                        this.currentShortPosition = p;
+                        currentShortPosition = p;
                         break;
                 }
             }
             catch (Exception ex)
             {
-                this.Log($"Missing Position for order {order.Id} with error {ex.Message}", logleve:LoggingLevel.Trading);
+                Log($"Missing Position for order {order.Id} with error {ex.Message}", LoggingLevel.Trading);
             }
         }
         #endregion
     }
-
 }

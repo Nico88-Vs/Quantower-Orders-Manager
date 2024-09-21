@@ -3,7 +3,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -37,7 +39,6 @@ namespace DivergentStrV0_1
         public Period _absorbtionPeriod = Period.MIN30;
 
         public IchiManager IchiManager { get; set; }
-        public PositionManager PositionManager { get; set; }
         OrderManager OrderPlacingManager { get; set; }
         HistoricalData hd;
         HistoryType _historyType;
@@ -86,7 +87,7 @@ namespace DivergentStrV0_1
             this._Symbol.NewLast += this._Symbol_NewLast;
             this._Symbol.NewQuote += this._Symbol_NewQuote;
 
-            this.PositionManager = new PositionManager();
+            PositionManager.Init(0.5, this._Symbol, this._Account);
         }
         protected override void OnStop()
         {
@@ -98,7 +99,7 @@ namespace DivergentStrV0_1
             }
 
             Computator.TradeDetected -= this.Computator_TradeDetected;
-            this.PositionManager.Stop();
+            PositionManager.Stop();
 
             if (this.IchiManager != null)
             {
@@ -263,13 +264,15 @@ namespace DivergentStrV0_1
                     //TODO:tenkanperiod hardcoded
                     //var potential_tp = this.IchiManager.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BEARISH ? this.CloudSeries.SlowTF.ReturnCurrent(cloudLineReference.fast, 26) : 0;
                     int x = Computator.DivergenceDetect(items);
-                    Core.Instance.Loggers.Log($"New Trade almost detected {items[x][PriceType.Close]}");
                     if (x >= 0)
                     {
-                        Core.Instance.Loggers.Log($"New Trade at price close {items[x][PriceType.Close]}");
-                        //TODO:sostituzione
+                        //TODO:sostituzione Test - PositionManager
                         //this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low], potential_tp);
-                        this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low]);
+                        //this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low]);
+                        double _temp_price_tp = s == Side.Buy ? items[0][PriceType.Close] * 1.01 : items[0][PriceType.Close] * 0.99;
+                        var sl = SlTpHolder.CreateSL(items[0][PriceType.Low], isTrailing: true);
+                        var tp = SlTpHolder.CreateTP(_temp_price_tp);
+                        PositionManager.CreateRequest(Side.Sell, items[0][PriceType.Close], sl, tp);
                     }
 
                 }
@@ -398,8 +401,8 @@ namespace DivergentStrV0_1
             base.OnInitializeMetrics(meter);
             
             meter.CreateObservableCounter("Balance", () => this._Account.Balance > 0 ? this._Account.Balance : 0);
-            meter.CreateObservableCounter("LongCount", () => this.PositionManager.LongPositionsCount > 0 ? this.PositionManager.LongPositionsCount : 0);
-            meter.CreateObservableCounter("ShortCount", () => this.PositionManager.ShortPositionsCount > 0 ? this.PositionManager.ShortPositionsCount : 0);
+            meter.CreateObservableCounter("LongCount", () => PositionManager.LongPositionsCount > 0 ? PositionManager.LongPositionsCount : 0);
+            meter.CreateObservableCounter("ShortCount", () => PositionManager.ShortPositionsCount > 0 ? PositionManager.ShortPositionsCount : 0);
             meter.CreateObservableCounter("in Long", () => this.commutateBool(this.inLong) );
             meter.CreateObservableCounter("in short", () => this.commutateBool(this.inShort), description:"balala");
             
