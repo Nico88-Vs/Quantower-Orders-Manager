@@ -10,7 +10,7 @@
     <RootNamespace>DivergentStrV0_1</RootNamespace>
     <StartAction>Program</StartAction>
     <StartProgram>A:\Quantower\TradingPlatform\v1.140.14\Console.StarterNew.exe</StartProgram>
-    <StartArguments>--address 127.0.0.1 --port 62831</StartArguments>
+    <StartArguments>--address 127.0.0.1 --port 57155</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>A:\Quantower\TradingPlatform\v1.140.14\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
@@ -18,6 +18,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>A:\Quantower\TradingPlatform\v1.140.14\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\repos\TpSlManager\TpSlManager.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="TradingPlatform.BusinessLayer">
       <HintPath>A:\Quantower\TradingPlatform\v1.140.14\bin\TradingPlatform.BusinessLayer.dll</HintPath>

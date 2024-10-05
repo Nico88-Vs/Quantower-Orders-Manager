@@ -15,6 +15,16 @@ namespace DivergentStrV0_1
         OverTrade
     }
 
+    public enum OrderImpact
+    {
+        Entry,
+        PartialEntry,
+        TP,
+        PartialTp,
+        SL,
+        PartialSl
+    }
+
     public static class PositionManager
     {
         #region Attributes
@@ -26,6 +36,9 @@ namespace DivergentStrV0_1
 
         private static double _totalQuantityPerSide;
 
+        private static int _UniqueId;
+
+        public static string StrategyName { get; private set; }
         public static int ShortPositionsCount { get; set; } = 0;
         public static int LongPositionsCount { get; set; } = 0;
 
@@ -74,8 +87,10 @@ namespace DivergentStrV0_1
         #endregion
 
         #region Init
-        public static void Init(double totalQuantitSide, Symbol symbol, Account account, int shortOrderLimit = 3, int longOrderLimit = 3)
+        public static void Init(string strategyName, double totalQuantitSide, Symbol symbol, Account account, int shortOrderLimit = 3, int longOrderLimit = 3)
         {
+            _UniqueId = 0;
+            StrategyName = strategyName;
             _totalQuantityPerSide = totalQuantitSide;
 
             _longTradeLimit = longOrderLimit;
@@ -329,11 +344,63 @@ namespace DivergentStrV0_1
         #region Utils
         private static void Log(string message, LoggingLevel logLevel) => Core.Instance.Loggers.Log(message, logLevel);
 
-        public static void CreateRequest(Side side, double entryPrice, SlTpHolder sl, SlTpHolder tp, bool place_it = true, string comment = "new order")
+        private static List<PlaceOrderRequestParameters> GenerateSlTp(double slPrice, double tPrice, PlaceOrderRequestParameters order)
         {
+            //TODO: make dinamic
+            //TODO: enum order impact tipe unused
+
+            var sl = new PlaceOrderRequestParameters()
+            {
+                Account = order.Account,
+                Symbol = order.Symbol,
+                Side = order.Side == Side.Buy ? Side.Sell : Side.Buy,
+                Quantity = order.Quantity,
+                OrderTypeId = _Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).FirstOrDefault(x => x.Usage == OrderTypeUsage.All && x.Behavior == OrderTypeBehavior.Stop).Id,
+                TimeInForce = TimeInForce.GTC,
+                Price = slPrice,
+                Comment = order.Comment,
+                AdditionalParameters = new List<SettingItem>()
+                {
+                    new SettingItemBoolean(OrderType.REDUCE_ONLY, true),
+                    new SettingItemString(name: "Order Impact Type", value: Convert.ToString(OrderImpact.SL)),
+                    new SettingItemInteger(name: "Unique Session Id", value: (int)order.AdditionalParameters.First(x => x.Name == "Unique Session Id").Value),
+                }
+            };
             
+            var tp = new PlaceOrderRequestParameters()
+            {
+                Account = order.Account,
+                Symbol = order.Symbol,
+                Side = order.Side == Side.Buy ? Side.Sell : Side.Buy,
+                Quantity = order.Quantity,
+                OrderTypeId = _Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).FirstOrDefault(x => x.Usage == OrderTypeUsage.All && x.Behavior == OrderTypeBehavior.Stop).Id,
+                TimeInForce = TimeInForce.GTC,
+                Price = tPrice,
+                Comment = order.Comment,
+                AdditionalParameters = new List<SettingItem>()
+                {
+                    new SettingItemBoolean(OrderType.REDUCE_ONLY, true),
+                    new SettingItemString(name: "Order Impact Type", value: Convert.ToString(OrderImpact.TP)),
+                    new SettingItemInteger(name: "Unique Session Id", value: (int)order.AdditionalParameters.First(x => x.Name == "Unique Session Id").Value),
+                }
+            };
+
+            return new List<PlaceOrderRequestParameters>() { sl, tp};
+
+        }
+
+        public static void CreateRequest(Side side, double entryPrice, double sl, double tp, bool place_it = true)
+        {
+            string comment = $"{StrategyName}";
             double quantity = side == Side.Buy ? _totalQuantityPerSide/_longTradeLimit : _totalQuantityPerSide/_shortTradeCount;
 
+            List<SettingItem> orderSetting = new List<SettingItem>()
+            {
+                new SettingItemString(name : "Order Impact Type", value: Convert.ToString(OrderImpact.Entry)),
+                new SettingItemInteger(name : "Unique Session Id", value: _UniqueId)
+            };
+
+            _UniqueId++;
 
             var placeHoldeReq = new PlaceOrderRequestParameters()
             {
@@ -344,9 +411,8 @@ namespace DivergentStrV0_1
                 OrderTypeId = _Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).FirstOrDefault(x => x.Usage == OrderTypeUsage.All && x.Behavior == OrderTypeBehavior.Limit).Id,
                 TimeInForce = TimeInForce.Day,
                 Price = entryPrice,
-                StopLoss = sl,
-                TakeProfit = tp,
                 Comment = comment,
+                AdditionalParameters = orderSetting
             };
 
             AddTemporaryOrder(placeHoldeReq);

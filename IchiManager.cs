@@ -51,56 +51,56 @@ namespace DivergentStrV0_1
 
             this.CloudSeries.GenerateCloud(TFs);
 
-            this.CloudSeries.Cross += this.CloudSeries_Cross;
-            this.CloudSeries.TrendCross += this.CloudSeries_TrendCross;
+            //this.CloudSeries.Cross += this.CloudSeries_Cross;
+            //this.CloudSeries.TrendCross += this.CloudSeries_TrendCross;
         }
 
-        private void CloudSeries_TrendCross(object sender, TrendEvent e) => throw new NotImplementedException();
-        private void CloudSeries_Cross(object sender, CrossEvent e)
-        {
-            if (this.running)
-            {
-                if (this.Scenario == IchimokuCloudScenario.STRONG_BULLISH & e.Args == EventCrosArg.Dead_fast)
-                {
-                    try
-                    {
-                        double slprice = e.CurrentCloud.MaximaFast.Last().Value;
-                        //TODO:attenzione che le basi sono mescolate
-                        double tPrice = this.CloudSeries.MidCloudDictionary.FirstOrDefault(x => x.Value.Contains(e.CurrentCloud)).Key.BasesList.Last().Value;
-                        var sl = SlTpHolder.CreateSL(slprice, isTrailing: false);
-                        var tp = SlTpHolder.CreateTP(tPrice);
+        //private void CloudSeries_TrendCross(object sender, TrendEvent e) => throw new NotImplementedException();
+        //private void CloudSeries_Cross(object sender, CrossEvent e)
+        //{
+        //    if (this.running)
+        //    {
+        //        if (this.Scenario == IchimokuCloudScenario.STRONG_BULLISH & e.Args == EventCrosArg.Dead_fast)
+        //        {
+        //            try
+        //            {
+        //                double slprice = e.CurrentCloud.MaximaFast.Last().Value;
+        //                //TODO:attenzione che le basi sono mescolate
+        //                double tPrice = this.CloudSeries.MidCloudDictionary.FirstOrDefault(x => x.Value.Contains(e.CurrentCloud)).Key.BasesList.Last().Value;
+        //                var sl = SlTpHolder.CreateSL(slprice, isTrailing: false);
+        //                var tp = SlTpHolder.CreateTP(tPrice);
 
-                        PositionManager.CreateRequest(Side.Sell, e.Price, sl, tp);
-                    }
-                    catch (Exception ex)
-                    {
-                        Core.Instance.Loggers.Log($"Error Placing order with ichi message : {ex.Message}");
-                    }
-                }
+        //                PositionManager.CreateRequest(Side.Sell, e.Price, sl, tp);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Core.Instance.Loggers.Log($"Error Placing order with ichi message : {ex.Message}");
+        //            }
+        //        }
 
-                if (this.Scenario == IchimokuCloudScenario.STRONG_BEARISH & e.Args == EventCrosArg.Gold_fast)
-                {
-                    try
-                    {
-                        double slprice = e.CurrentCloud.MinimaFast.Last().Value;
-                        //TODO:attenzione che le basi sono mescolate
-                        double tPrice = this.CloudSeries.MidCloudDictionary.FirstOrDefault(x => x.Value.Contains(e.CurrentCloud)).Key.BasesList.Last().Value;
-                        var sl = SlTpHolder.CreateSL(slprice, isTrailing: false);
-                        var tp = SlTpHolder.CreateTP(tPrice);
+        //        if (this.Scenario == IchimokuCloudScenario.STRONG_BEARISH & e.Args == EventCrosArg.Gold_fast)
+        //        {
+        //            try
+        //            {
+        //                double slprice = e.CurrentCloud.MinimaFast.Last().Value;
+        //                //TODO:attenzione che le basi sono mescolate
+        //                double tPrice = this.CloudSeries.MidCloudDictionary.FirstOrDefault(x => x.Value.Contains(e.CurrentCloud)).Key.BasesList.Last().Value;
+        //                var sl = SlTpHolder.CreateSL(slprice, isTrailing: false);
+        //                var tp = SlTpHolder.CreateTP(tPrice);
 
-                        PositionManager.CreateRequest(Side.Buy, e.Price, sl, tp);
-                    }
-                    catch (Exception ex)
-                    {
-                        Core.Instance.Loggers.Log($"Error Placing order with ichi message : {ex.Message}");
-                    }
-                }
-            }
-        }
+        //                PositionManager.CreateRequest(Side.Buy, e.Price, sl, tp);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Core.Instance.Loggers.Log($"Error Placing order with ichi message : {ex.Message}");
+        //            }
+        //        }
+        //    }
+        //}
         public void Stop()
         {
-            this.CloudSeries.Cross -= this.CloudSeries_Cross;
-            this.CloudSeries.TrendCross -= this.CloudSeries_TrendCross;
+            //this.CloudSeries.Cross -= this.CloudSeries_Cross;
+            //this.CloudSeries.TrendCross -= this.CloudSeries_TrendCross;
         }
         public void Update()
         {

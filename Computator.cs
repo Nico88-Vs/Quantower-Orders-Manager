@@ -54,8 +54,10 @@ namespace DivergentStrV0_1
     public enum Signed
     {
         None,
-        Signed,
-        SignedBig,
+        SignedLong,
+        SignedBigLong,
+        SignedBigShort,
+        SignedShort,
     }
     public enum InTrade
     {
@@ -114,71 +116,104 @@ namespace DivergentStrV0_1
 
             return resoult;
         }
-        public static Signed? ComputeSignon(List<LineSeries> signon_lineseries, ref int signCount, Side side)
+        //public static Signed? ComputeSignon(List<LineSeries> signon_lineseries, ref int signCount, Side side)
+        //{
+        //    Signed? resoult = null;
+        //    int _tempout = 0;
+        //    double normal = 0;
+        //    double big = 100000;
+        //    bool detected = false;
+        //    double control = 0;
+        //    try
+        //    {
+        //        //TODO: Attenzione al limite di 100000 per i big , valore attuale per questioni grafiche
+        //        switch (side)
+        //        {
+        //            case Side.Buy:
+        //                normal = signon_lineseries[Convert.ToInt32(IchiLineIndex.LonGap)].GetValue();
+        //                big = signon_lineseries[Convert.ToInt32(IchiLineIndex.LonGap_Bigger)].GetValue();
+        //                control = signon_lineseries[Convert.ToInt32(IchiLineIndex.Senkou_SpanA)].GetValue();
+        //                break;
+
+        //            case Side.Sell:
+        //                normal = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap)].GetValue();
+        //                big = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap_Bigger)].GetValue();
+        //                control = signon_lineseries[Convert.ToInt32(IchiLineIndex.Senkou_SpanA)].GetValue();
+        //                break;
+        //        }
+
+        //        if (normal > 0)
+        //        {
+        //            detected = true;
+        //            _tempout += 1;
+        //        }
+        //        if (big < 100000)
+        //        {
+        //            detected = true;
+        //            _tempout += 2;
+        //        }
+
+        //        _tempout += signCount;
+
+        //        _tempout = Math.Max(_tempout, signCount);
+
+        //        _tempout = _tempout > 3 ? 3 : _tempout;
+
+
+        //        if (_tempout == 0)
+        //            resoult = Signed.None;
+        //        else if (_tempout > 0)
+        //            resoult = _tempout > 1 ? Signed.SignedBig : Signed.Signed;
+
+        //        if (resoult != null)
+        //            signCount = _tempout;
+
+        //        return resoult;
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Core.Instance.Loggers.Log(ex, message: "Failed to Compute signon in Static Class");
+        //        return null;
+        //    }
+        //    finally
+        //    {
+        //        if (resoult != null)
+        //            if (detected)
+        //            {
+        //                NewTradEventArg arg = new NewTradEventArg(NewTradeSenderType.IchimokuGap, side);
+        //                TradeDetected?.Invoke(signon_lineseries, arg);
+        //            }
+        //    }
+        //}
+
+        public static Signed ComputeSignon(List<LineSeries> signon_lineseries)
         {
-            Signed? resoult = null;
-            int _tempout = 0;
-            double normal = 0;
-            double big = 100000;
-            bool detected = false;
             try
             {
                 //TODO: Attenzione al limite di 100000 per i big , valore attuale per questioni grafiche
-                switch (side)
-                {
-                    case Side.Buy:
-                        normal = signon_lineseries[Convert.ToInt32(IchiLineIndex.LonGap)].GetValue();
-                        big = signon_lineseries[Convert.ToInt32(IchiLineIndex.LonGap_Bigger)].GetValue();
-                        break;
+                double normalbuy = signon_lineseries[Convert.ToInt32(IchiLineIndex.LonGap)].GetValue();
+                double bigbuy = signon_lineseries[Convert.ToInt32(IchiLineIndex.LonGap_Bigger)].GetValue();
+                double normalsell = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap)].GetValue();
+                double bigsell = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap_Bigger)].GetValue();
+               
 
-                    case Side.Sell:
-                        normal = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap)].GetValue();
-                        big = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap_Bigger)].GetValue();
-                        break;
-                }
-
-                if (normal > 0)
-                {
-                    detected = true;
-                    _tempout += 1;
-                }
-                if (big < 100000)
-                {
-                    detected = true;
-                    _tempout += 2;
-                }
-
-                _tempout += signCount;
-
-                _tempout = Math.Max(_tempout, signCount);
-
-                _tempout = _tempout > 3 ? 3 : _tempout;
-
-
-                if (_tempout == 0)
-                    resoult = Signed.None;
-                else if (_tempout > 0)
-                    resoult = _tempout > 1 ? Signed.SignedBig : Signed.Signed;
-
-                if (resoult != null)
-                    signCount = _tempout;
-
-                return resoult;
-
+                if (normalbuy > 0)
+                    return Signed.SignedLong;
+                else if (normalsell > 0)
+                    return Signed.SignedShort;
+                
+                else if (bigbuy < 100000)
+                    return Signed.SignedLong;
+                else if (bigsell < 100000)
+                    return Signed.SignedBigShort;
+                else
+                    return Signed.None;
             }
             catch (Exception ex)
             {
                 Core.Instance.Loggers.Log(ex, message: "Failed to Compute signon in Static Class");
-                return null;
-            }
-            finally
-            {
-                if (resoult != null)
-                    if (detected)
-                    {
-                        NewTradEventArg arg = new NewTradEventArg(NewTradeSenderType.IchimokuGap, side);
-                        TradeDetected?.Invoke(signon_lineseries, arg);
-                    }
+                return Signed.None;
             }
         }
         public static bool VolumeDetect(List<LineSeries> volume_lineseries)
