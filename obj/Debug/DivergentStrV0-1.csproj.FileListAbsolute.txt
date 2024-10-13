@@ -11,4 +11,3 @@ C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0_1.dll
 C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\refint\DivergentStrV0_1.dll
 C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\DivergentStrV0_1.pdb
 C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\ref\DivergentStrV0_1.dll
-C:\Users\user\source\ClonedRepo\QTStrategies\obj\Debug\Divergen.28379687.Up2Date

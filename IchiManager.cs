@@ -111,22 +111,22 @@ namespace DivergentStrV0_1
 
             if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.LonGap)].GetValue() > 0)
             {
-                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Fast, Side.Buy);
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Mid, Side.Buy);
                 this.OnGap(args);
             }
             if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.ShortGap)].GetValue() > 0)
             {
-                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Fast, Side.Sell);
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Mid, Side.Sell);
                 this.OnGap(args);
             }
             if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.LonGap_Bigger)].GetValue() < 100000)
             {
-                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Mid, Side.Buy);
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Slow, Side.Buy);
                 this.OnGap(args);
             }
             if (_ichi.LinesSeries[Convert.ToInt32(IchiLineIndex.ShortGap_Bigger)].GetValue() < 100000)
             {
-                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Mid, Side.Sell);
+                GapEventArgs args = new GapEventArgs(TF.TimeFrame.Slow, Side.Sell);
                 this.OnGap(args);
             }
         }

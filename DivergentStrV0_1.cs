@@ -83,7 +83,7 @@ namespace DivergentStrV0_1
 
             if (this.IchiManager != null)
             {
-                this.IchiManager.GapDetected -= this.IchiManager_GapDetected;
+                //this.IchiManager.GapDetected -= this.IchiManager_GapDetected;
                 this.IchiManager.Stop();
             }
         }
@@ -134,8 +134,8 @@ namespace DivergentStrV0_1
                         this.hd.VolumeAnalysisCalculationProgress.ProgressChanged += this.VolumeAnalysisCalculationProgress_ProgressChanged;
                     }
 
-                    this.condiHolder = this.createSlcondiction();
-                    TpSlManager<int>.init(this.condiHolder);
+                    //this.condiHolder = this.createSlcondiction();
+                    //TpSlManager<int>.init(this.condiHolder);
                 }
                 finally
                 {
@@ -208,53 +208,56 @@ namespace DivergentStrV0_1
 
                 CumulativeAbsorbtion = this.GenerateIndicator("CumulativeAbsobtion", DeltaSettings);
 
-                this.IchiManager = new IchiManager(this.Ichimoku, this.hd);
-                this.IchiManager.GapDetected += this.IchiManager_GapDetected;
+                //this.IchiManager = new IchiManager(this.Ichimoku, this.hd);
+                //this.IchiManager.GapDetected += this.IchiManager_GapDetected;
 
                 //HINT:new part
-                this.condiHolder = this.createSlcondiction();
-                TpSlManager<int>.init(this.condiHolder);
+                //this.condiHolder = this.createSlcondiction();
+                //TpSlManager<int>.init(this.condiHolder);
+
+                this.Conditionable = new FirstStrategyCondiction(this.Ichimoku, this._Account, this._Symbol, 1);
 
                 this.readyToGo = true;
             }
 
-            this.IchiManager.Update();
+            //this.IchiManager.Update();
+            this.Conditionable.Update(null);
         }
 
-        private void IchiManager_GapDetected(object sender, GapEventArgs e)
-        {
-            Side s = e.Side;
+        //private void IchiManager_GapDetected(object sender, GapEventArgs e)
+        //{
+        //    //Side s = e.Side;
 
-            if (this.volumesLoaded)
-            {
-                var items = new List<IHistoryItem>();
-                for (int i = 1; i < 3; i++)
-                    items.Add(this.hd[i]);
+        //    //if (this.volumesLoaded)
+        //    //{
+        //    //    var items = new List<IHistoryItem>();
+        //    //    for (int i = 1; i < 3; i++)
+        //    //        items.Add(this.hd[i]);
 
-                //HINT:Sto usando gli item nella lista con indici 0 e 1
-                if (Computator.VolumeDetect(Volume.LinesSeries.ToList()))
-                {
-                    //TODO:tenkanperiod hardcoded
-                    //var potential_tp = this.IchiManager.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BEARISH ? this.CloudSeries.SlowTF.ReturnCurrent(cloudLineReference.fast, 26) : 0;
-                    int x = Computator.DivergenceDetect(items);
-                    if (x >= 0)
-                    {
-                        //TODO:sostituzione Test - PositionManager
-                        //this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low], potential_tp);
-                        this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low]);
-                        //double _temp_price_tp = s == Side.Buy ? items[0][PriceType.Close] * 1.01 : items[0][PriceType.Close] * 0.99;
-                        //var sl = SlTpHolder.CreateSL(items[0][PriceType.Low], isTrailing: true);
-                        //var tp = SlTpHolder.CreateTP(_temp_price_tp);
-                        //PositionManager.CreateRequest(Side.Sell, items[0][PriceType.Close], sl, tp);
-                    }
+        //    //    //HINT:Sto usando gli item nella lista con indici 0 e 1
+        //    //    if (Computator.VolumeDetect(Volume.LinesSeries.ToList()))
+        //    //    {
+        //    //        //TODO:tenkanperiod hardcoded
+        //    //        //var potential_tp = this.IchiManager.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BEARISH ? this.CloudSeries.SlowTF.ReturnCurrent(cloudLineReference.fast, 26) : 0;
+        //    //        int x = Computator.DivergenceDetect(items);
+        //    //        if (x >= 0)
+        //    //        {
+        //    //            //TODO:sostituzione Test - PositionManager
+        //    //            //this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low], potential_tp);
+        //    //            this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low]);
+        //    //            //double _temp_price_tp = s == Side.Buy ? items[0][PriceType.Close] * 1.01 : items[0][PriceType.Close] * 0.99;
+        //    //            //var sl = SlTpHolder.CreateSL(items[0][PriceType.Low], isTrailing: true);
+        //    //            //var tp = SlTpHolder.CreateTP(_temp_price_tp);
+        //    //            //PositionManager.CreateRequest(Side.Sell, items[0][PriceType.Close], sl, tp);
+        //    //        }
 
-                }
-            }
-        }
+        //    //    }
+        //    //}
+        //}
 
         #endregion
 
-        #region utils
+        #region Utils
 
         private void TestTrade(Side side, double price, double Slprice, double tPrices = 0)
         {
@@ -289,7 +292,6 @@ namespace DivergentStrV0_1
 
         }
 
-        #region Utils
         private Indicator GenerateIndicator(string indi_names, IList<SettingItem> indi_settings = null)
         {
             if (this.hd == null)
@@ -315,41 +317,40 @@ namespace DivergentStrV0_1
             return resoult;
         }
 
-        private SlTpCondictionHolder<int> createSlcondiction()
-        {
-            // Inizializzazione corretta del delegato per SL
-            SlTpCondictionHolder<int>.DefineSl[] slDelegates = new SlTpCondictionHolder<int>.DefineSl[]
-            {
-                this.GetSlTp
-            };
+        //private SlTpCondictionHolder<int> createSlcondiction()
+        //{
+        //    // Inizializzazione corretta del delegato per SL
+        //    SlTpCondictionHolder<int>.DefineSl[] slDelegates = new SlTpCondictionHolder<int>.DefineSl[]
+        //    {
+        //        this.GetSlTp
+        //    };
 
-            // Inizializzazione corretta del delegato per TP (usiamo un delegato vuoto o simile)
-            SlTpCondictionHolder<int>.DefineTp[] tpDelegates = new SlTpCondictionHolder<int>.DefineTp[]
-            {
-                this.GetSlTp
-            };
-            SlTpCondictionHolder<int> slh = new SlTpCondictionHolder<int>(new int[1] { 0 }, new int[1] { 0 }, slDelegates, tpDelegates);
-            return slh;
-        }
+        //    // Inizializzazione corretta del delegato per TP (usiamo un delegato vuoto o simile)
+        //    SlTpCondictionHolder<int>.DefineTp[] tpDelegates = new SlTpCondictionHolder<int>.DefineTp[]
+        //    {
+        //        this.GetSlTp
+        //    };
+        //    SlTpCondictionHolder<int> slh = new SlTpCondictionHolder<int>(new int[1] { 0 }, new int[1] { 0 }, slDelegates, tpDelegates);
+        //    return slh;
+        //}
 
-        public double GetSlTp(int lineseriesIndex)
-        {
-            return this.Ichimoku.GetValue(lineIndex: lineseriesIndex);
-        }
-        #endregion
+        //public double GetSlTp(int lineseriesIndex)
+        //{
+        //    return this.Ichimoku.GetValue(lineIndex: lineseriesIndex);
+        //}
 
-        //TODO Update Those Metrics
-        protected override void OnInitializeMetrics(Meter meter)
-        {
-            base.OnInitializeMetrics(meter);
+        ////TODO Update Those Metrics
+        //protected override void OnInitializeMetrics(Meter meter)
+        //{
+        //    base.OnInitializeMetrics(meter);
             
-            //meter.CreateObservableCounter("Balance", () => this._Account.Balance > 0 ? this._Account.Balance : 0);
-            //meter.CreateObservableCounter("LongCount", () => PositionManager.LongPositionsCount > 0 ? PositionManager.LongPositionsCount : 0);
-            //meter.CreateObservableCounter("ShortCount", () => PositionManager.ShortPositionsCount > 0 ? PositionManager.ShortPositionsCount : 0);
-            //meter.CreateObservableCounter("in Long", () => this.commutateBool(this.inLong) );
-            //meter.CreateObservableCounter("in short", () => this.commutateBool(this.inShort), description:"balala");
+        //    //meter.CreateObservableCounter("Balance", () => this._Account.Balance > 0 ? this._Account.Balance : 0);
+        //    //meter.CreateObservableCounter("LongCount", () => PositionManager.LongPositionsCount > 0 ? PositionManager.LongPositionsCount : 0);
+        //    //meter.CreateObservableCounter("ShortCount", () => PositionManager.ShortPositionsCount > 0 ? PositionManager.ShortPositionsCount : 0);
+        //    //meter.CreateObservableCounter("in Long", () => this.commutateBool(this.inLong) );
+        //    //meter.CreateObservableCounter("in short", () => this.commutateBool(this.inShort), description:"balala");
             
-        }
+        //}
         #endregion
     }
 }

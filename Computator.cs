@@ -71,6 +71,8 @@ namespace DivergentStrV0_1
     {
         //TODO: Ricordiamoci di resettare i contatori
         //TODO: Notifichiamo gli eventi
+
+        public readonly static List<int> CloudLineIndex = new List<int> { 3, 4, 8, 9, 13, 14 };
         public static event EventHandler<NewTradEventArg> TradeDetected;
         public static void Init()
         {

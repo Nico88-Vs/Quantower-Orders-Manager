@@ -174,14 +174,19 @@ namespace DivergentStrV0_1.C_Obj
 
                     if (fastValueShift > 0 && slowvalueShift > 0)
                     {
-                        this.CurrentCloud.UpdateCloud(0);
-
-                        if (goldenCross || deadCross)
+                        if (this.CurrentCloud != null)
                         {
-                            double endPrice = (fastValue + slowvalue + fastValueShift + slowvalueShift) / 4;
-                            CrossEvent ar = new CrossEvent(CalculateArg(goldenCross, CurrentCloud.Time_F), endPrice, this.Hd.Count, CurrentCloud);
-                            OnCross(ar);
+
+                            this.CurrentCloud.UpdateCloud(0);
+
+                            if (goldenCross || deadCross)
+                            {
+                                double endPrice = (fastValue + slowvalue + fastValueShift + slowvalueShift) / 4;
+                                CrossEvent ar = new CrossEvent(CalculateArg(goldenCross, CurrentCloud.Time_F), endPrice, this.Hd.Count, CurrentCloud);
+                                OnCross(ar);
+                            }
                         }
+
 
                     }
                     break;
@@ -190,13 +195,17 @@ namespace DivergentStrV0_1.C_Obj
 
                     if (fastValueShift > 0 && slowvalueShift > 0)
                     {
-                        this.CurrentMidCloud.UpdateCloud(0);
-
-                        if (goldenCross || deadCross)
+                        if (this.CurrentMidCloud != null)
                         {
-                            double endPrice = (fastValue + slowvalue + fastValueShift + slowvalueShift) / 4;
-                            CrossEvent ar = new CrossEvent(CalculateArg(goldenCross, CurrentMidCloud.Time_F), endPrice, this.Hd.Count, CurrentMidCloud);
-                            OnCross(ar);
+
+                            this.CurrentMidCloud.UpdateCloud(0);
+
+                            if (goldenCross || deadCross)
+                            {
+                                double endPrice = (fastValue + slowvalue + fastValueShift + slowvalueShift) / 4;
+                                CrossEvent ar = new CrossEvent(CalculateArg(goldenCross, CurrentMidCloud.Time_F), endPrice, this.Hd.Count, CurrentMidCloud);
+                                OnCross(ar);
+                            }
                         }
                     }
                     break;
@@ -205,13 +214,17 @@ namespace DivergentStrV0_1.C_Obj
 
                     if (fastValueShift > 0 && slowvalueShift > 0)
                     {
-                        this.CurrentSlowCloud.UpdateCloud(0);
-
-                        if (goldenCross || deadCross)
+                        if (CurrentSlowCloud != null)
                         {
-                            double endPrice = (fastValue + slowvalue + fastValueShift + slowvalueShift) / 4;
-                            CrossEvent ar = new CrossEvent(CalculateArg(goldenCross, CurrentSlowCloud.Time_F), endPrice, this.Hd.Count, this.CurrentSlowCloud);
-                            OnCross(ar);
+
+                            this.CurrentSlowCloud.UpdateCloud(0);
+
+                            if (goldenCross || deadCross)
+                            {
+                                double endPrice = (fastValue + slowvalue + fastValueShift + slowvalueShift) / 4;
+                                CrossEvent ar = new CrossEvent(CalculateArg(goldenCross, CurrentSlowCloud.Time_F), endPrice, this.Hd.Count, this.CurrentSlowCloud);
+                                OnCross(ar);
+                            }
                         }
                     }
                     break;
