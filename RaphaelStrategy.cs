@@ -95,7 +95,7 @@ namespace CondictionalStrategyExample
 
             double delta = EndTimeOfDay > StarTimeOfDay ? Math.Abs(EndTimeOfDay.TotalSeconds - this.StarTimeOfDay.TotalSeconds) : GetReversSpan(StarTimeOfDay, EndTimeOfDay).TotalSeconds;
 
-            HistoricalData temPHd = this.Symbol.GetHistory(this.HD.Period, utcNow.AddSeconds(-start_delta.TotalSeconds), toTime: utcNow.AddSeconds(-start_delta.TotalSeconds+delta));
+            HistoricalData temPHd = this.Symbol.GetHistory(StaticUtils.GetPeriod(this.HD), utcNow.AddSeconds(-start_delta.TotalSeconds), toTime: utcNow.AddSeconds(-start_delta.TotalSeconds+delta));
 
             double min = temPHd.Min(x => x[PriceType.Low]);
             double max = temPHd.Max(x => x[PriceType.High]);

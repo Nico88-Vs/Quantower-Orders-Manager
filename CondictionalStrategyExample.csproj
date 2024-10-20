@@ -9,18 +9,18 @@
     <AssemblyName>CondictionalStrategyExample</AssemblyName>
     <RootNamespace>CondictionalStrategyExample</RootNamespace>
     <StartAction>Program</StartAction>
-    <StartProgram>A:\Quantower\TradingPlatform\v1.140.14\Console.StarterNew.exe</StartProgram>
-    <StartArguments>--address 127.0.0.1 --port 63340</StartArguments>
+    <StartProgram>A:\Quantower\TradingPlatform\v1.141.10\Console.StarterNew.exe</StartProgram>
+    <StartArguments>--address 127.0.0.1 --port 51024</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>A:\Quantower\TradingPlatform\v1.140.14\..\..\Settings\Scripts\Strategies\CondictionalStrategyExample</OutputPath>
+    <OutputPath>A:\Quantower\TradingPlatform\v1.141.10\..\..\Settings\Scripts\Strategies\CondictionalStrategyExample</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>A:\Quantower\TradingPlatform\v1.140.14\..\..\Settings\Scripts\Strategies\CondictionalStrategyExample</OutputPath>
+    <OutputPath>A:\Quantower\TradingPlatform\v1.141.10\..\..\Settings\Scripts\Strategies\CondictionalStrategyExample</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="TradingPlatform.BusinessLayer">
-      <HintPath>A:\Quantower\TradingPlatform\v1.140.14\bin\TradingPlatform.BusinessLayer.dll</HintPath>
+      <HintPath>A:\Quantower\TradingPlatform\v1.141.10\bin\TradingPlatform.BusinessLayer.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

@@ -115,11 +115,10 @@ namespace DivergentStrV0_1
 
                 this.hd = this._Symbol.GetHistory(new HistoryRequestParameters()
                 {
-                    Aggregation = new HistoryAggregationTime(this._HdPeriod),
+                    Aggregation = new HistoryAggregationTime(this._HdPeriod, HistoryType.Last),
                     FromTime = time.AddDays(-_HdRequireDais),
                     ToTime = default,
                     Symbol = this._Symbol,
-                    HistoryType = HistoryType.Last
                 });
 
                 try
@@ -154,11 +153,10 @@ namespace DivergentStrV0_1
 
                 this.hd = this._Symbol.GetHistory(new HistoryRequestParameters()
                 {
-                    Aggregation = new HistoryAggregationTime(this._HdPeriod),
+                    Aggregation = new HistoryAggregationTime(this._HdPeriod, HistoryType.Last),
                     FromTime = time.AddDays(-_HdRequireDais),
                     ToTime = default,
                     Symbol = this._Symbol,
-                    HistoryType = HistoryType.Last
                 });
 
                 try
