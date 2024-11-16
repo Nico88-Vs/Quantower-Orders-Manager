@@ -42,7 +42,7 @@ namespace DivergentStrV0_1
         [InputParameter("Absorbtion Period", 4)]
         public Period _absorbtionPeriod = Period.MIN30;
         [InputParameter("Quantity", 5)]
-        public double _Quantity = 1000;
+        public double _Quantity = 1;
         [InputParameter("Max Short Expo", 6, minimum: 1, maximum: 10, decimalPlaces: 0)]
         public int _MaxShortExpo = 3;
         [InputParameter("Max Long Expo", 7, minimum: 1, maximum: 10, decimalPlaces: 0)]
@@ -312,11 +312,13 @@ namespace DivergentStrV0_1
             base.OnInitializeMetrics(meter);
 
             meter.CreateObservableCounter("Balance", () => this.Conditionable != null ? this.Conditionable.Account.Balance : -1);
+            meter.CreateObservableCounter("Long on Run", () => this.Conditionable != null ? this.Conditionable.LongOpenCount : -1);
             meter.CreateObservableCounter("Net Profit", () => this.Conditionable != null & this.Conditionable.NetProfit > 0 ? this.Conditionable.NetProfit : -1);
             meter.CreateObservableCounter("LongCount", () => this.Conditionable != null ? this.Conditionable.LongCount : -1);
             meter.CreateObservableCounter("ShortCount", () => this.Conditionable != null ? this.Conditionable.ShortCount : -1);
             meter.CreateObservableCounter("PositiveShortCount", () => this.Conditionable != null ? this.Conditionable.ShortProfittableCount : -1);
             meter.CreateObservableCounter("PositiveLongCount", () => this.Conditionable != null ? this.Conditionable.LongProfittableCount : -1);
+            meter.CreateObservableCounter("Short on Run", () => this.Conditionable != null & this.Conditionable.ShortOpenCount > 0 ? this.Conditionable.ShortOpenCount : -1);
 
         }
         #endregion

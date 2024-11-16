@@ -25,6 +25,8 @@ namespace TpSlManager
         public List<Order> SlItems { get; set; }
         public List<Order> TpItems { get; set; }
         public string Comment { get; set; }
+        public Position RelatedPosition { get; set; }
+        private double StartingAmmount { get; set; }
         public double NetProfit { get; set; } = 0;
         private List<string> UnAddedSl;
         private List<string> UnAddedTp;
@@ -47,6 +49,37 @@ namespace TpSlManager
             this.ClosedQuantity = 0;
             this.UnAddedSl = new List<string>();
             this.UnAddedTp = new List<string>();
+
+            Core.Instance.PositionRemoved += this.Instance_PositionRemoved;
+        }
+
+        private void Instance_PositionRemoved(Position obj)
+        {
+            if (this.RelatedPosition.Id == obj.Id)
+            {
+                //this.NetProfit = obj.NetPnL.Value;
+                //this.ClosedAll();
+            }
+        }
+
+        private void CheckForPosition(Trade trade)
+        {
+            try
+            {
+                Position temPosition = Core.Instance.Positions.FirstOrDefault(x => x.Account == trade.Account & x.State == BusinessObjectState.Normal &
+                x.Side == trade.Side & x.Symbol == trade.Symbol);
+
+                if (temPosition != null)
+                {
+                    this.RelatedPosition = temPosition;
+                    this.StartingAmmount = this.RelatedPosition.Quantity-trade.Quantity;
+                }
+            }
+            catch (Exception)
+            {
+                Core.Instance.Loggers.Log("Postion not fouded");
+                throw;
+            }
         }
 
         public void AddSl(Order order) => SlItems.Add(order);
@@ -55,6 +88,9 @@ namespace TpSlManager
         {
             if (this.Status == PositionManagerStatus.Closed)
                 return;
+
+            if (this.RelatedPosition == null)
+                this.CheckForPosition(trade);
 
             if (trade.PositionImpactType == PositionImpactType.Open)
             {
@@ -76,9 +112,10 @@ namespace TpSlManager
                 }
             }
 
+
             if (trade.PositionImpactType == PositionImpactType.Close)
             {
-                if (SlItems.Any(x => x.Id ==  trade.OrderId))
+                if (SlItems.Any(x => x.Id == trade.OrderId))
                 {
                     Order _o = SlItems.FirstOrDefault(x => x.Id == trade.OrderId);
 
@@ -87,8 +124,8 @@ namespace TpSlManager
 
                     this.NetProfit += trade.NetPnl.Value;
                 }
-                
-                if (TpItems.Any(x => x.Id ==  trade.OrderId))
+
+                if (TpItems.Any(x => x.Id == trade.OrderId))
                 {
                     Order _o = TpItems.FirstOrDefault(x => x.Id == trade.OrderId);
 
@@ -98,9 +135,12 @@ namespace TpSlManager
 
                 }
 
-                //if (this.FilledQuantity > 0)
-                if (this.ClosedQuantity >= this.FilledQuantity)
-                    this.ClosedAll();
+                //HINT SOSPESO PERCHE NN LE CHIUDE TUTTE UTILIZZO UN SEMPLICE POSITION CHECK CHE SARA INFLUENZATO DA TRADE ESTERNI ALLA STAREGIA
+                if (this.FilledQuantity > 0)
+                    if (this.ClosedQuantity >= this.FilledQuantity)
+                        while(this.Status != PositionManagerStatus.Closed)
+                            this.ClosedAll();
+
             }
         }
 
@@ -165,10 +205,14 @@ namespace TpSlManager
 
                 Core.Instance.Loggers.Log(ex.Message, LoggingLevel.Trading);
             }
+            finally
+            {
+                TpItems.Clear();
+                SlItems.Clear();
 
-            TpItems.Clear();
-            SlItems.Clear();
-           
+            }
+
+
         }
 
         public void AddTemporarySl(string orderId) => this.UnAddedSl.Add(orderId);
@@ -201,23 +245,23 @@ namespace TpSlManager
         }
         private void DeepOrderCanceling(List<Order> orders)
         {
-            foreach (Order order in orders)
-            {
+            //foreach (Order order in orders)
+            //{
 
-                try
-                {
-                    Order _o = Core.Instance.Orders.Where(x => x.Account == order.Account & x.Symbol == order.Symbol
-                             & x.Side == order.Side & x.RemainingQuantity == order.RemainingQuantity & x.Price == order.Price & x.AdditionalInfo == order.AdditionalInfo).FirstOrDefault();
+            //    try
+            //    {
+            //        Order _o = Core.Instance.Orders.Where(x => x.Account == order.Account & x.Symbol == order.Symbol
+            //                 & x.Side == order.Side & x.RemainingQuantity == order.RemainingQuantity & x.Price == order.Price & x.AdditionalInfo == order.AdditionalInfo).FirstOrDefault();
 
-                    Core.Instance.CancelOrder(order);
-                }
-                catch (Exception ex)
-                {
+            //        Core.Instance.CancelOrder(order);
+            //    }
+            //    catch (Exception ex)
+            //    {
 
-                    Core.Instance.Loggers.Log($"Failed to cancel reamain{ex.Message}");
-                }
+            //        Core.Instance.Loggers.Log($"Failed to cancel reamain{ex.Message}");
+            //    }
                 
-            }
+            //}
         }
     }
 }

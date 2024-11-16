@@ -24,3 +24,13 @@ D:\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.deps.
 D:\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.dll
 D:\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.pdb
 D:\source\ClonedRepo\QTStrategies\obj\Debug\ref\DivergentStrV0_1.dll
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0-1.csproj.AssemblyReference.cache
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0-1.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0-1.AssemblyInfoInputs.cache
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0-1.AssemblyInfo.cs
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0-1.csproj.CoreCompileInputs.cache
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0-1.sourcelink.json
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0_1.dll
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\refint\DivergentStrV0_1.dll
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0_1.pdb
+C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\ref\DivergentStrV0_1.dll

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj": {}
+    "C:\\Users\\tagli\\OneDrive\\Desktop\\QTStrategies\\DivergentStrV0-1.csproj": {}
   },
   "projects": {
-    "D:\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj": {
+    "C:\\Users\\tagli\\OneDrive\\Desktop\\QTStrategies\\DivergentStrV0-1.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj",
+        "projectUniqueName": "C:\\Users\\tagli\\OneDrive\\Desktop\\QTStrategies\\DivergentStrV0-1.csproj",
         "projectName": "DivergentStrV0_1",
-        "projectPath": "D:\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj",
+        "projectPath": "C:\\Users\\tagli\\OneDrive\\Desktop\\QTStrategies\\DivergentStrV0-1.csproj",
         "packagesPath": "C:\\Users\\tagli\\.nuget\\packages\\",
-        "outputPath": "D:\\source\\ClonedRepo\\QTStrategies\\obj\\",
+        "outputPath": "C:\\Users\\tagli\\OneDrive\\Desktop\\QTStrategies\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\tagli\\AppData\\Roaming\\NuGet\\NuGet.Config",

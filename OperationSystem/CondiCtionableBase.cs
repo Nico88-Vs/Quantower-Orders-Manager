@@ -15,6 +15,8 @@ namespace DivergentStrV0_1.OperationSystem
         public virtual int ShortExpo { get => TpSlManager<R>.ShortExpo; }
         public virtual int LongProfittableCount { get => TpSlManager<R>.LongtProfittableCount; }
         public virtual int ShortProfittableCount { get => TpSlManager<R>.ShortProfittableCount; }
+        public virtual int ShortOpenCount { get => TpSlManager<R>.ShortOpenCount; }
+        public virtual int LongOpenCount { get => TpSlManager<R>.LongOpenCount; }
         public virtual string ConditionName { get; }
         public virtual string Description { get; }
         public virtual Account Account { get; }

@@ -10,7 +10,7 @@
     <RootNamespace>DivergentStrV0_1</RootNamespace>
     <StartAction>Program</StartAction>
     <StartProgram>D:\Quantower\TradingPlatform\v1.141.10\Console.StarterNew.exe</StartProgram>
-    <StartArguments>--address 127.0.0.1 --port 57215</StartArguments>
+    <StartArguments>--address 127.0.0.1 --port 59169</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>D:\Quantower\TradingPlatform\v1.141.10\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>

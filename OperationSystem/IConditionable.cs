@@ -16,6 +16,8 @@ namespace DivergentStrV0_1.OperationSystem
         public Account Account { get; }
         public int LongProfittableCount { get; }
         public int ShortProfittableCount { get; }
+        public int ShortOpenCount { get; }
+        public int LongOpenCount { get; }
         public int LongExpo { get; }
         public int ShortExpo { get; }
         string ConditionName { get; }

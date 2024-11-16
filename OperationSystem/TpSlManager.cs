@@ -22,6 +22,45 @@ namespace TpSlManager
         private static Dictionary<Symbol,OrderType> OrderTypes { get; set; }
         private static int MaxShortExo;
         private static int MaxLongExo;
+        #region metrics
+        public static int ShortOpenCount
+        {
+            get
+            {
+                int count = 0;
+                try
+                {
+                    //count = SlTpItems.Where(x => x.Side == Side.Sell && x.Status != PositionManagerStatus.Closed).Count();
+                    count = 1;
+
+                }
+                catch (Exception ex)
+                {
+                    Core.Instance.Loggers.Log(ex.Message, LoggingLevel.Error);
+                }
+
+                return count;
+            }
+        }
+        public static int LongOpenCount
+        {
+            get
+            {
+                int count = 0;
+                try
+                {
+                    //count = SlTpItems.Where(x => x.Side == Side.Buy && x.Status != PositionManagerStatus.Closed).Count();
+                    count = 1;
+
+                }
+                catch (Exception ex)
+                {
+                    Core.Instance.Loggers.Log(ex.Message, LoggingLevel.Error);
+                }
+
+                return count;
+            }
+        }
         public static int ShortProfittableCount 
         {
             get
@@ -142,6 +181,7 @@ namespace TpSlManager
                 return sum;
             }
         }
+        #endregion
 
         public static void init(SlTpCondictionHolder<T> listOfDelegates, int maxshortexpo = 3, int maxlongexpo = 3, bool allowshort = true)
         {

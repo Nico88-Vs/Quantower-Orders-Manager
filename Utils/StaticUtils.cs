@@ -17,6 +17,7 @@ namespace DivergentStrV0_1.Utils
             else if (history.Aggregation is HistoryAggregationTickBars)
             {
                 var agg1 = (HistoryAggregationTickBars)history.Aggregation;
+
                 return new Period(BasePeriod.Tick, agg1.TicksCount);
             }
             else return new Period();
