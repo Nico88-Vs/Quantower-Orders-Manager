@@ -6,17 +6,20 @@ using System.Threading.Tasks;
 using TpSlManager;
 using TradingPlatform.BusinessLayer;
 
-namespace DivergentStrV0_1
+namespace DivergentStrV0_1.OperationSystem
 {
     public interface IConditionable
     {
-        public double NetProfit  { get; }
+        public double NetProfit { get; }
         public double LongCount { get; }
         public double ShortCount { get; }
-        public int LongExpo { get; }        
+        public Account Account { get; }
+        public int LongProfittableCount { get; }
+        public int ShortProfittableCount { get; }
+        public int LongExpo { get; }
         public int ShortExpo { get; }
         string ConditionName { get; }
-    
+
         public void Update(object obj);
         public void SetCondictionHolder();
         public void ManagerInit();

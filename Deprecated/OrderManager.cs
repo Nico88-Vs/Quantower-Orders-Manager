@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using TradingPlatform.BusinessLayer.LocalOrders;
 using TradingPlatform.BusinessLayer;
 
-namespace DivergentStrV0_1
+namespace DivergentStrV0_1.Deprecated
 {
     public class OrderManager
     {
@@ -30,44 +30,44 @@ namespace DivergentStrV0_1
 
         public OrderManager(HistoryType historyType, int deltaTick = 5)
         {
-            this.History_Type = historyType;
-            this.Finished = true;
-            this.DeltaInTick = deltaTick;
+            History_Type = historyType;
+            Finished = true;
+            DeltaInTick = deltaTick;
         }
 
 
         public void PlaceNewOrder(PlaceOrderRequestParameters _placeOrderRequest)
         {
-            if (!this.Finished)
+            if (!Finished)
                 return;
 
-            this.Finished = false;
-            this.placeOrderRequest = _placeOrderRequest;
+            Finished = false;
+            placeOrderRequest = _placeOrderRequest;
 
             try
             {
-                this.SetOrderType();
+                SetOrderType();
 
                 //HACK: invece di usare gli ordini locali 
                 //HINT: devo creare qui il cts perche era in TrySave
-                this.cts = new CancellationTokenSource();
+                cts = new CancellationTokenSource();
                 //this.TrySaveLocalOrder();
-                this.OverrideOrder(_placeOrderRequest);
+                OverrideOrder(_placeOrderRequest);
 
-                if (this.History_Type == HistoryType.Last)
+                if (History_Type == HistoryType.Last)
                 {
-                    placeOrderRequest.Symbol.NewLast += this.Symbol_NewLast;
+                    placeOrderRequest.Symbol.NewLast += Symbol_NewLast;
                 }
                 else
                 {
-                    placeOrderRequest.Symbol.NewQuote += this.Symbol_NewQuote;
+                    placeOrderRequest.Symbol.NewQuote += Symbol_NewQuote;
                 }
             }
             catch (Exception ex)
             {
-                Core.Instance.Loggers.Log($"Somenti Wrong With Order {this.ToString()}");
+                Core.Instance.Loggers.Log($"Somenti Wrong With Order {ToString()}");
                 Core.Instance.Loggers.Log($"With ex.Message {ex.Message}");
-                this.OnCancel();
+                OnCancel();
             }
 
         }
@@ -76,7 +76,7 @@ namespace DivergentStrV0_1
         #region utils
         private void OverrideOrder(OrderRequestParameters _overrideOrderRequest)
         {
-            this.placeOrderRequest = new PlaceOrderRequestParameters()
+            placeOrderRequest = new PlaceOrderRequestParameters()
             {
                 Account = _overrideOrderRequest.Account,
                 Symbol = _overrideOrderRequest.Symbol,
@@ -84,13 +84,13 @@ namespace DivergentStrV0_1
                 Quantity = _overrideOrderRequest.Quantity,
                 TimeInForce = _overrideOrderRequest.TimeInForce,
                 Price = _overrideOrderRequest.Price,
-                OrderTypeId = this.limit_ordertype.Id,
+                OrderTypeId = limit_ordertype.Id,
             };
         }
 
         private void ProcessPrice(double price)
         {
-            if (this.order_placed || this.cts.IsCancellationRequested)
+            if (order_placed || cts.IsCancellationRequested)
                 return;
 
             bool place = false;
@@ -99,7 +99,7 @@ namespace DivergentStrV0_1
             {
                 if (placeOrderRequest.Side == Side.Buy)
                 {
-                    var new_price = placeOrderRequest.Symbol.CalculatePrice(placeOrderRequest.Price, -this.DeltaInTick);
+                    var new_price = placeOrderRequest.Symbol.CalculatePrice(placeOrderRequest.Price, -DeltaInTick);
                     if (price < new_price)
                     {
                         place = true;
@@ -123,16 +123,16 @@ namespace DivergentStrV0_1
             {
                 if (place)
                 {
-                    placeOrderRequest.SendingSource = this.Name;
+                    placeOrderRequest.SendingSource = Name;
                     var resoult = Core.Instance.PlaceOrder(placeOrderRequest);
                     if (resoult.Status == TradingOperationResultStatus.Failure)
-                        this.OnCancel();
+                        OnCancel();
                     if (resoult.Status == TradingOperationResultStatus.Success)
                     {
-                        this.orderId = resoult.OrderId;
+                        orderId = resoult.OrderId;
                         Core.Instance.Loggers.Log($"Eureca, placed", LoggingLevel.Trading);
-                        this.order_placed = true;
-                        Core.Instance.OrderAdded += this.Instance_OrderAdded;
+                        order_placed = true;
+                        Core.Instance.OrderAdded += Instance_OrderAdded;
                     }
                 }
             }
@@ -159,15 +159,15 @@ namespace DivergentStrV0_1
                 }
             }
 
-            this.limit_ordertype = order_type;
+            limit_ordertype = order_type;
         }
 
         private void TrySaveLocalOrder()
         {
             try
             {
-                this.placeOrderRequest = placeOrderRequest;
-                this.cts = new CancellationTokenSource();
+                placeOrderRequest = placeOrderRequest;
+                cts = new CancellationTokenSource();
 
                 //HINT Create local order
                 var localOrder = new LocalOrder
@@ -176,7 +176,7 @@ namespace DivergentStrV0_1
                     Account = placeOrderRequest.Account,
                     Side = placeOrderRequest.Side,
                     TotalQuantity = placeOrderRequest.Quantity,
-                    OrderType = this.limit_ordertype,
+                    OrderType = limit_ordertype,
                     TimeInForce = placeOrderRequest.TimeInForce,
                     Price = placeOrderRequest.Price,
                     //HINT:Inutili in un limit
@@ -188,13 +188,13 @@ namespace DivergentStrV0_1
                 localOrderId = Core.Instance.LocalOrders.AddOrder(localOrder);
                 Core.Instance.LocalOrders.Updated += LocalOrdersOnUpdated;
 
-                if (this.History_Type == HistoryType.Last)
+                if (History_Type == HistoryType.Last)
                 {
-                    placeOrderRequest.Symbol.NewLast += this.Symbol_NewLast;
+                    placeOrderRequest.Symbol.NewLast += Symbol_NewLast;
                 }
                 else
                 {
-                    placeOrderRequest.Symbol.NewQuote += this.Symbol_NewQuote;
+                    placeOrderRequest.Symbol.NewQuote += Symbol_NewQuote;
                 }
 
                 //while (!this.order_placed && !this.cts.IsCancellationRequested)
@@ -202,7 +202,7 @@ namespace DivergentStrV0_1
             }
             catch (Exception ex)
             {
-                Core.Instance.Loggers.Log($"Somenti Wrong in {this.ToString()}", LoggingLevel.Error);
+                Core.Instance.Loggers.Log($"Somenti Wrong in {ToString()}", LoggingLevel.Error);
                 Core.Instance.Loggers.Log($"With Ex.message {ex.Message}", LoggingLevel.Error);
             }
         }
@@ -218,7 +218,7 @@ namespace DivergentStrV0_1
 
             if (e.Lifecycle == EntityLifecycle.Removed)
             {
-                this.cts?.Cancel();
+                cts?.Cancel();
                 return;
             }
 
@@ -237,7 +237,7 @@ namespace DivergentStrV0_1
             //TODO: Order is not placed
 
             if (!order_placed)
-                this.ProcessPrice(last.Price);
+                ProcessPrice(last.Price);
             else
             {
                 if (placeOrderRequest.Side == Side.Buy)
@@ -247,7 +247,7 @@ namespace DivergentStrV0_1
                     {
                         var resoult = Core.Instance.Orders.First(x => x.Id == orderId).Cancel();
                         if (resoult.Status == TradingOperationResultStatus.Success)
-                            this.OnCancel();
+                            OnCancel();
 
                     }
                 }
@@ -257,7 +257,7 @@ namespace DivergentStrV0_1
                     {
                         var resoult = Core.Instance.Orders.First(x => x.Id == orderId).Cancel();
                         if (resoult.Status == TradingOperationResultStatus.Success)
-                            this.OnCancel();
+                            OnCancel();
                     }
                 }
 
@@ -266,21 +266,21 @@ namespace DivergentStrV0_1
 
         private void Instance_OrderAdded(Order obj)
         {
-            if (!this.order_placed)
+            if (!order_placed)
                 return;
-            if (obj.Id == this.orderId)
+            if (obj.Id == orderId)
             {
-                Core.Instance.LocalOrders.RemoveOrder(this.localOrderId);
+                Core.Instance.LocalOrders.RemoveOrder(localOrderId);
                 //this.Finished = true;
-                this.OnCancel();
+                OnCancel();
             }
         }
 
         private void Symbol_NewQuote(Symbol symbol, Quote quote)
         {
-            double price = this.History_Type == HistoryType.Bid ? quote.Bid : quote.Ask;
+            double price = History_Type == HistoryType.Bid ? quote.Bid : quote.Ask;
             if (!order_placed)
-                this.ProcessPrice(price);
+                ProcessPrice(price);
             else
             {
                 if (placeOrderRequest.Side == Side.Buy)
@@ -292,7 +292,7 @@ namespace DivergentStrV0_1
                         if (resoult.Status == TradingOperationResultStatus.Success)
                         {
 
-                            this.OnCancel();
+                            OnCancel();
                         }
 
                     }
@@ -303,7 +303,7 @@ namespace DivergentStrV0_1
                     {
                         var resoult = Core.Instance.Orders.First(x => x.Id == orderId).Cancel();
                         if (resoult.Status == TradingOperationResultStatus.Success)
-                            this.OnCancel();
+                            OnCancel();
                     }
                 }
             }
@@ -314,22 +314,22 @@ namespace DivergentStrV0_1
         #region Lifecicle
         public void Dispose()
         {
-            this.OnCancel();
+            OnCancel();
             if (placeOrderRequest != null && placeOrderRequest.Symbol != null)
             {
-                if (this.History_Type == HistoryType.Last)
-                    placeOrderRequest.Symbol.NewLast -= this.Symbol_NewLast;
+                if (History_Type == HistoryType.Last)
+                    placeOrderRequest.Symbol.NewLast -= Symbol_NewLast;
                 else
-                    placeOrderRequest.Symbol.NewQuote -= this.Symbol_NewQuote;
+                    placeOrderRequest.Symbol.NewQuote -= Symbol_NewQuote;
             }
         }
         private void OnCancel()
         {
-            this.placeOrderRequest.Symbol.NewQuote -= this.Symbol_NewQuote;
-            this.placeOrderRequest.Symbol.NewLast -= this.Symbol_NewLast;
+            placeOrderRequest.Symbol.NewQuote -= Symbol_NewQuote;
+            placeOrderRequest.Symbol.NewLast -= Symbol_NewLast;
 
-            Core.Instance.OrderAdded -= this.Instance_OrderAdded;
-            this.cts?.Cancel();
+            Core.Instance.OrderAdded -= Instance_OrderAdded;
+            cts?.Cancel();
         }
         #endregion
 

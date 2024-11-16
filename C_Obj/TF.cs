@@ -63,5 +63,7 @@ namespace DivergentStrV0_1.C_Obj
         {
             return tenkanperiod * Delay;
         }
+
+      
     }
 }

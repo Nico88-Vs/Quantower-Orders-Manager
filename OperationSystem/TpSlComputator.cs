@@ -22,7 +22,6 @@ namespace TpSlManager
             this.tp_items = listOfDelegates.TpDelegateObj.Length;
             this.sl_items = listOfDelegates.SlDelegateObj.Length;
         }
-
         public void PlaceOrder(Order _order, SlTpItems items)
         {
             //TODO: market Ordere only
@@ -98,9 +97,10 @@ namespace TpSlManager
 
                 request.Price = updateDelegaate(delegateParameter);
                 request.AdditionalParameters = new List<SettingItem>
-                            {
-                                new SettingItemBoolean(OrderType.REDUCE_ONLY, true)
-                            };
+                {
+                    new SettingItemBoolean(OrderType.REDUCE_ONLY, true)
+                };
+
                 var resoult = Core.Instance.ModifyOrder(request);
 
                 if (resoult.Status == TradingOperationResultStatus.Failure)

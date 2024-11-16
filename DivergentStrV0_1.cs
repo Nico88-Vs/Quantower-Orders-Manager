@@ -11,6 +11,9 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Xml.Linq;
 using DivergentStrV0_1.C_Obj;
+using DivergentStrV0_1.OperationSystem;
+using DivergentStrV0_1.Strategies;
+using DivergentStrV0_1.Utils;
 using TpSlManager;
 using TradingPlatform.BusinessLayer;
 
@@ -33,11 +36,17 @@ namespace DivergentStrV0_1
         [InputParameter("Account", 1)]
         public Account _Account;
         [InputParameter("HD Preload required Dais", 2)]
-        public int _HdRequireDais = 1;
+        public int _HdRequireDais = 31;
         [InputParameter("Tick delay", 3, 0, 100, increment: 1)]
         public int entry_tick_delay = 5;
         [InputParameter("Absorbtion Period", 4)]
         public Period _absorbtionPeriod = Period.MIN30;
+        [InputParameter("Quantity", 5)]
+        public double _Quantity = 1000;
+        [InputParameter("Max Short Expo", 6, minimum: 1, maximum: 10, decimalPlaces: 0)]
+        public int _MaxShortExpo = 3;
+        [InputParameter("Max Long Expo", 7, minimum: 1, maximum: 10, decimalPlaces: 0)]
+        public int _MaxLongExpo = 3;
 
         public IchiManager IchiManager { get; set; }
         private HistoricalData hd;
@@ -81,9 +90,13 @@ namespace DivergentStrV0_1
                 this.hd.VolumeAnalysisCalculationProgress.ProgressChanged -= this.VolumeAnalysisCalculationProgress_ProgressChanged;
             }
 
+            if (this.Conditionable is OnlyBuyAtLowStrategy)
+            {
+                var temp = (OnlyBuyAtLowStrategy)this.Conditionable;
+            }
+
             if (this.IchiManager != null)
             {
-                //this.IchiManager.GapDetected -= this.IchiManager_GapDetected;
                 this.IchiManager.Stop();
             }
         }
@@ -113,11 +126,10 @@ namespace DivergentStrV0_1
 
                 this.hd = this._Symbol.GetHistory(new HistoryRequestParameters()
                 {
-                    Aggregation = new HistoryAggregationTime(Period.MIN1),
+                    Aggregation = new HistoryAggregationTime(Period.MIN1, HistoryType.Last),
                     FromTime = time.AddDays(-_HdRequireDais),
                     ToTime = default,
                     Symbol = this._Symbol,
-                    HistoryType = HistoryType.Last
                 });
 
                 try
@@ -155,11 +167,11 @@ namespace DivergentStrV0_1
 
                 this.hd = this._Symbol.GetHistory(new HistoryRequestParameters()
                 {
-                    Aggregation = new HistoryAggregationTime(Period.MIN1),
+                    Aggregation = new HistoryAggregationTime(Period.MIN1, HistoryType.Last),
                     FromTime = time.AddDays(-_HdRequireDais),
                     ToTime = default,
                     Symbol = this._Symbol,
-                    HistoryType = HistoryType.Last
+                   
                 });
 
                 try
@@ -200,22 +212,8 @@ namespace DivergentStrV0_1
             {
                 Ichimoku = this.GenerateIndicator("IchiMTreTempi V.1");
                 Volume = this.GenerateIndicator("Volume");
-                var DeltaSettings = new List<SettingItem>()
-                {
-                     new SettingItemPeriod(name: "Moving Avarage Period", value: this._absorbtionPeriod),
-                     new SettingItemPeriod(name: "Std Period Avarage", value: this._absorbtionPeriod)
-                };
 
-                CumulativeAbsorbtion = this.GenerateIndicator("CumulativeAbsobtion", DeltaSettings);
-
-                //this.IchiManager = new IchiManager(this.Ichimoku, this.hd);
-                //this.IchiManager.GapDetected += this.IchiManager_GapDetected;
-
-                //HINT:new part
-                //this.condiHolder = this.createSlcondiction();
-                //TpSlManager<int>.init(this.condiHolder);
-
-                this.Conditionable = new FirstStrategyCondiction(this.Ichimoku, this._Account, this._Symbol, 1);
+                this.Conditionable = new OnlyBuyAtLowStrategy(this.Ichimoku, this.Volume, this._Account, this._Symbol, this._Quantity /*maxLongExpo : this._MaxLongExpo, maxShortExpo: this._MaxShortExpo*/);
 
                 this.readyToGo = true;
             }
@@ -223,37 +221,6 @@ namespace DivergentStrV0_1
             //this.IchiManager.Update();
             this.Conditionable.Update(null);
         }
-
-        //private void IchiManager_GapDetected(object sender, GapEventArgs e)
-        //{
-        //    //Side s = e.Side;
-
-        //    //if (this.volumesLoaded)
-        //    //{
-        //    //    var items = new List<IHistoryItem>();
-        //    //    for (int i = 1; i < 3; i++)
-        //    //        items.Add(this.hd[i]);
-
-        //    //    //HINT:Sto usando gli item nella lista con indici 0 e 1
-        //    //    if (Computator.VolumeDetect(Volume.LinesSeries.ToList()))
-        //    //    {
-        //    //        //TODO:tenkanperiod hardcoded
-        //    //        //var potential_tp = this.IchiManager.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.STRONG_BULLISH || this.CloudSeries.Scenario == IchimokuCloudScenario.MODERATELY_BEARISH ? this.CloudSeries.SlowTF.ReturnCurrent(cloudLineReference.fast, 26) : 0;
-        //    //        int x = Computator.DivergenceDetect(items);
-        //    //        if (x >= 0)
-        //    //        {
-        //    //            //TODO:sostituzione Test - PositionManager
-        //    //            //this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low], potential_tp);
-        //    //            this.TestTrade(s, items[0][PriceType.Close], items[0][PriceType.Low]);
-        //    //            //double _temp_price_tp = s == Side.Buy ? items[0][PriceType.Close] * 1.01 : items[0][PriceType.Close] * 0.99;
-        //    //            //var sl = SlTpHolder.CreateSL(items[0][PriceType.Low], isTrailing: true);
-        //    //            //var tp = SlTpHolder.CreateTP(_temp_price_tp);
-        //    //            //PositionManager.CreateRequest(Side.Sell, items[0][PriceType.Close], sl, tp);
-        //    //        }
-
-        //    //    }
-        //    //}
-        //}
 
         #endregion
 
@@ -339,18 +306,19 @@ namespace DivergentStrV0_1
         //    return this.Ichimoku.GetValue(lineIndex: lineseriesIndex);
         //}
 
-        ////TODO Update Those Metrics
-        //protected override void OnInitializeMetrics(Meter meter)
-        //{
-        //    base.OnInitializeMetrics(meter);
-            
-        //    //meter.CreateObservableCounter("Balance", () => this._Account.Balance > 0 ? this._Account.Balance : 0);
-        //    //meter.CreateObservableCounter("LongCount", () => PositionManager.LongPositionsCount > 0 ? PositionManager.LongPositionsCount : 0);
-        //    //meter.CreateObservableCounter("ShortCount", () => PositionManager.ShortPositionsCount > 0 ? PositionManager.ShortPositionsCount : 0);
-        //    //meter.CreateObservableCounter("in Long", () => this.commutateBool(this.inLong) );
-        //    //meter.CreateObservableCounter("in short", () => this.commutateBool(this.inShort), description:"balala");
-            
-        //}
+        //TODO Update Those Metrics
+        protected override void OnInitializeMetrics(Meter meter)
+        {
+            base.OnInitializeMetrics(meter);
+
+            meter.CreateObservableCounter("Balance", () => this.Conditionable != null ? this.Conditionable.Account.Balance : -1);
+            meter.CreateObservableCounter("Net Profit", () => this.Conditionable != null & this.Conditionable.NetProfit > 0 ? this.Conditionable.NetProfit : -1);
+            meter.CreateObservableCounter("LongCount", () => this.Conditionable != null ? this.Conditionable.LongCount : -1);
+            meter.CreateObservableCounter("ShortCount", () => this.Conditionable != null ? this.Conditionable.ShortCount : -1);
+            meter.CreateObservableCounter("PositiveShortCount", () => this.Conditionable != null ? this.Conditionable.ShortProfittableCount : -1);
+            meter.CreateObservableCounter("PositiveLongCount", () => this.Conditionable != null ? this.Conditionable.LongProfittableCount : -1);
+
+        }
         #endregion
     }
 }

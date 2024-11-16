@@ -25,7 +25,7 @@ namespace TpSlManager
         public List<Order> SlItems { get; set; }
         public List<Order> TpItems { get; set; }
         public string Comment { get; set; }
-        public double NetProfit { get; set; }
+        public double NetProfit { get; set; } = 0;
         private List<string> UnAddedSl;
         private List<string> UnAddedTp;
         public double ClosedQuantity{ get; set; } = 0;
@@ -56,20 +56,23 @@ namespace TpSlManager
             if (this.Status == PositionManagerStatus.Closed)
                 return;
 
-            if (trade.OrderId == EntryOrder.Id)
+            if (trade.PositionImpactType == PositionImpactType.Open)
             {
-                bool ramain = EntryOrder.RemainingQuantity == 0;
-                this.FilledQuantity += trade.Quantity;
-
-                switch (ramain)
+                if (trade.OrderId == EntryOrder.Id)
                 {
-                    case true:
-                        this.Status = PositionManagerStatus.Filled;
-                        break;
+                    bool ramain = EntryOrder.RemainingQuantity == 0;
+                    this.FilledQuantity += trade.Quantity;
 
-                    case false:
-                        this.Status = PositionManagerStatus.PartialyFilled;
-                        break;
+                    switch (ramain)
+                    {
+                        case true:
+                            this.Status = PositionManagerStatus.Filled;
+                            break;
+
+                        case false:
+                            this.Status = PositionManagerStatus.PartialyFilled;
+                            break;
+                    }
                 }
             }
 
@@ -95,10 +98,9 @@ namespace TpSlManager
 
                 }
 
-                if (this.FilledQuantity > 0)
-                    if (this.ClosedQuantity >= this.FilledQuantity)
-                //if (this.GetClosedQtity())
-                        this.ClosedAll();
+                //if (this.FilledQuantity > 0)
+                if (this.ClosedQuantity >= this.FilledQuantity)
+                    this.ClosedAll();
             }
         }
 
@@ -113,37 +115,21 @@ namespace TpSlManager
 
             if (this.SlItems.Any(x => x.Id == history.Id))
             {
+                if (history.Status == OrderStatus.Filled)
+                    return;
                 var obj = Core.Instance.GetOrderById(history.Id);
-                this.SlItems[this.SlItems.IndexOf(obj)] = obj;
+                var idx = this.SlItems.IndexOf(obj);
+                this.SlItems[idx] = obj;
             }
             
             if (this.TpItems.Any(x => x.Id == history.Id))
             {
-                var obj = Core.Instance.GetOrderById(history.Id);
-                this.TpItems[this.TpItems.IndexOf(obj)] = obj;
+                if (history.Status == OrderStatus.Filled)
+                    return;
+                var obj_1 = Core.Instance.GetOrderById(history.Id);
+                var idx2 = this.TpItems.IndexOf(obj_1);
+                this.TpItems[idx2] = obj_1;
             }
-        }
-
-        private bool GetClosedQtity()
-        {
-            if (this.EntryOrder.FilledQuantity == 0)
-                return true;
-
-            List<Order> orders = this.SlItems.Concat(this.TpItems).ToList();
-            double filledQtity = 0;
-            
-            foreach (var item in orders)
-            {
-                filledQtity += item.FilledQuantity;
-            }
-
-            if (filledQtity < this.EntryOrder.FilledQuantity)
-            {
-                this.ClosedQuantity = filledQtity;
-                return false;
-            }
-            else
-                return true;
         }
 
         private void ClosedAll()
@@ -213,7 +199,6 @@ namespace TpSlManager
                 this.SlItems[idx] = order;
             }
         }
-
         private void DeepOrderCanceling(List<Order> orders)
         {
             foreach (Order order in orders)

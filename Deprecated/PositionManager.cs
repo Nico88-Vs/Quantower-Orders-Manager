@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Linq;
 using TradingPlatform.BusinessLayer;
 
-namespace DivergentStrV0_1
+namespace DivergentStrV0_1.Deprecated
 {
     public enum PositionManagerStatus
     {
@@ -366,7 +366,7 @@ namespace DivergentStrV0_1
                     new SettingItemInteger(name: "Unique Session Id", value: (int)order.AdditionalParameters.First(x => x.Name == "Unique Session Id").Value),
                 }
             };
-            
+
             var tp = new PlaceOrderRequestParameters()
             {
                 Account = order.Account,
@@ -385,14 +385,14 @@ namespace DivergentStrV0_1
                 }
             };
 
-            return new List<PlaceOrderRequestParameters>() { sl, tp};
+            return new List<PlaceOrderRequestParameters>() { sl, tp };
 
         }
 
         public static void CreateRequest(Side side, double entryPrice, double sl, double tp, bool place_it = true)
         {
             string comment = $"{StrategyName}";
-            double quantity = side == Side.Buy ? _totalQuantityPerSide/_longTradeLimit : _totalQuantityPerSide/_shortTradeCount;
+            double quantity = side == Side.Buy ? _totalQuantityPerSide / _longTradeLimit : _totalQuantityPerSide / _shortTradeCount;
 
             List<SettingItem> orderSetting = new List<SettingItem>()
             {

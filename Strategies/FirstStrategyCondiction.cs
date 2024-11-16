@@ -3,21 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DivergentStrV0_1.OperationSystem;
+using DivergentStrV0_1.Utils;
 using TpSlManager;
 using TradingPlatform.BusinessLayer;
 
-namespace DivergentStrV0_1
+namespace DivergentStrV0_1.Strategies
 {
     public class FirstStrategyCondiction : ConditionableBase<Indicator>
     {
-        public override double NetProfit { get => TpSlManager<Indicator>.NetProfit;}
-        public override double LongCount { get => TpSlManager<Indicator>.LongCount;}
-        public override double ShortCount { get => TpSlManager<Indicator>.ShortCount;}
-        public override int LongExpo { get => TpSlManager<Indicator>.LongExpo;}
-        public override int ShortExpo { get => TpSlManager<Indicator>.ShortExpo;}
+        public override double NetProfit { get => TpSlManager<Indicator>.NetProfit; }
+        public override double LongCount { get => TpSlManager<Indicator>.LongCount; }
+        public override double ShortCount { get => TpSlManager<Indicator>.ShortCount; }
+        public override int LongExpo { get => TpSlManager<Indicator>.LongExpo; }
+        public override int ShortExpo { get => TpSlManager<Indicator>.ShortExpo; }
         public override string ConditionName { get; } = "First Condictional Strategy";
         public override string Description { get; } = "Trade Gaps targetting first ichi Cloud Lines";
-        public override SlTpCondictionHolder<Indicator> CondictionHolder { get => _CondictionHolder;}
+        public override SlTpCondictionHolder<Indicator> CondictionHolder { get => _CondictionHolder; }
         public override Account Account => base.Account;
         public override Symbol Symbol => base.Symbol;
         public override double Quantity => base.Quantity;
@@ -30,32 +32,32 @@ namespace DivergentStrV0_1
         private IchiManager _Ichimanager;
         private HistoricalData _Hd;
 
-        public FirstStrategyCondiction(Indicator ichichimokuIndicator, Account account, Symbol symbol, double quantity, int maxShortExpo = 1, int maxLongExpo = 1) 
-            : base(account , symbol, quantity, maxShortExpo, maxLongExpo)
+        public FirstStrategyCondiction(Indicator ichichimokuIndicator, Account account, Symbol symbol, double quantity, int maxShortExpo = 1, int maxLongExpo = 1)
+            : base(account, symbol, quantity, maxShortExpo, maxLongExpo)
         {
-            this._IchimokuIndicator = ichichimokuIndicator;
-            this.StartIchimoku(ichichimokuIndicator.HistoricalData);
-            this.SetCondictionHolder();
-            base.ManagerInit();
+            _IchimokuIndicator = ichichimokuIndicator;
+            StartIchimoku(ichichimokuIndicator.HistoricalData);
+            SetCondictionHolder();
+            ManagerInit();
         }
 
         public override void Close()
         {
-            this._Ichimanager.GapDetected -= this._Ichimanager_GapDetected;
+            _Ichimanager.GapDetected -= _Ichimanager_GapDetected;
             base.Close();
 
         }
         public override void GetMetrics() => throw new NotImplementedException();
-        public override void SetCondictionHolder() => this._CondictionHolder = CreateSlcondiction();
+        public override void SetCondictionHolder() => _CondictionHolder = CreateSlcondiction();
         public override void Trade(Side side, double price)
         {
             var placeHoldeReq = new PlaceOrderRequestParameters()
             {
-                Account = this.Account,
-                Symbol = this.Symbol,
+                Account = Account,
+                Symbol = Symbol,
                 Side = side,
                 Quantity = Quantity,
-                OrderTypeId = this.Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).FirstOrDefault(x => x.Usage == OrderTypeUsage.All && x.Behavior == OrderTypeBehavior.Limit).Id,
+                OrderTypeId = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).FirstOrDefault(x => x.Usage == OrderTypeUsage.All && x.Behavior == OrderTypeBehavior.Limit).Id,
                 TimeInForce = TimeInForce.Day,
                 Price = price,
                 Comment = "new order",
@@ -66,23 +68,23 @@ namespace DivergentStrV0_1
 
         public override void Update(object obj)
         {
-            this._Ichimanager.Update();
+            _Ichimanager.Update();
 
             if (TpSlManager<Indicator>.SlTpItems.Count > 0)
-                this.CondictionHolder.Computator.UpdateOrder(TpSlManager<Indicator>.SlTpItems);
+                CondictionHolder.Computator.UpdateOrder(TpSlManager<Indicator>.SlTpItems);
         }
 
         public void StartIchimoku(HistoricalData hd)
         {
-            this._Ichimanager = new IchiManager(this._IchimokuIndicator, hd);
-            this._IchimanagerInitialized = true;
-            this._Ichimanager.GapDetected += this._Ichimanager_GapDetected;
-            this._Hd = hd;
+            _Ichimanager = new IchiManager(_IchimokuIndicator, hd);
+            _IchimanagerInitialized = true;
+            _Ichimanager.GapDetected += _Ichimanager_GapDetected;
+            _Hd = hd;
         }
 
         private void _Ichimanager_GapDetected(object sender, C_Obj.GapEventArgs e)
         {
-            this.Trade(e.Side, this._Hd[0][PriceType.Close]);
+            Trade(e.Side, _Hd[0][PriceType.Close]);
         }
 
         private SlTpCondictionHolder<Indicator> CreateSlcondiction()
@@ -90,15 +92,15 @@ namespace DivergentStrV0_1
             // Inizializzazione corretta del delegato per SL
             SlTpCondictionHolder<Indicator>.DefineSl[] slDelegates = new SlTpCondictionHolder<Indicator>.DefineSl[]
             {
-                this.GetSl
+                GetSl
             };
 
             // Inizializzazione corretta del delegato per TP (usiamo un delegato vuoto o simile)
             SlTpCondictionHolder<Indicator>.DefineTp[] tpDelegates = new SlTpCondictionHolder<Indicator>.DefineTp[]
             {
-                this.GeTp
+                GeTp
             };
-            SlTpCondictionHolder<Indicator> slh = new SlTpCondictionHolder<Indicator>(new Indicator[1] { this._IchimokuIndicator }, new Indicator[1] { _IchimokuIndicator }, slDelegates, tpDelegates);
+            SlTpCondictionHolder<Indicator> slh = new SlTpCondictionHolder<Indicator>(new Indicator[1] { _IchimokuIndicator }, new Indicator[1] { _IchimokuIndicator }, slDelegates, tpDelegates);
             return slh;
         }
 
@@ -115,16 +117,16 @@ namespace DivergentStrV0_1
                 {
                     ls.Add(line.GetValue());
                 }
-               
+
             }
 
             switch (s)
             {
                 case Side.Buy:
-                    resoult = this.GetClosest(ls, sltpitem.EntryPrice, true);
+                    resoult = GetClosest(ls, sltpitem.EntryPrice, true);
                     break;
                 case Side.Sell:
-                    resoult = this.GetClosest(ls, sltpitem.EntryPrice, false);
+                    resoult = GetClosest(ls, sltpitem.EntryPrice, false);
                     break;
             }
 
@@ -150,10 +152,10 @@ namespace DivergentStrV0_1
             switch (s)
             {
                 case Side.Buy:
-                    resoult = this.GetClosest(ls, sltpitem.EntryPrice, false);
+                    resoult = GetClosest(ls, sltpitem.EntryPrice, false);
                     break;
                 case Side.Sell:
-                    resoult = this.GetClosest(ls, sltpitem.EntryPrice, true);
+                    resoult = GetClosest(ls, sltpitem.EntryPrice, true);
                     break;
             }
 
@@ -175,7 +177,7 @@ namespace DivergentStrV0_1
                 selected.OrderBy(x => x);
             }
 
-            if (selected.Count > 0) 
+            if (selected.Count > 0)
                 return selected.First();
             else
             {

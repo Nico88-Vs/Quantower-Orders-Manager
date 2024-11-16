@@ -8,7 +8,8 @@ using TradingPlatform.BusinessLayer;
 
 namespace TpSlManager
 {
-   
+    //TODO: solve static behavior
+
     public static class TpSlManager<T>
     {
         public static List<SlTpItems> SlTpItems { get; private set; }
@@ -17,10 +18,44 @@ namespace TpSlManager
         public static SlTpCondictionHolder<T> ListOfDelegates { get; set; }
         private static List<string> FilledIds { get; set; }
         private static List<Guid> PartialiFilledIds { get; set; }
+        private static bool AllowShort;
         private static Dictionary<Symbol,OrderType> OrderTypes { get; set; }
         private static int MaxShortExo;
         private static int MaxLongExo;
+        public static int ShortProfittableCount 
+        {
+            get
+            {
+                int count = 0;
+                try
+                {
+                    count = SlTpItems.Where(x => x.Side == Side.Sell && x.NetProfit > 0).Count();
+                }
+                catch (Exception ex)
+                {
+                    Core.Instance.Loggers.Log(ex.Message, LoggingLevel.Error);
+                }
 
+                return count;
+            }
+        }
+        public static int LongtProfittableCount
+        {
+            get
+            {
+                int count = 0;
+                try
+                {
+                    count = SlTpItems.Where(x => x.Side == Side.Buy && x.NetProfit > 0).Count();
+                }
+                catch (Exception ex)
+                {
+                    Core.Instance.Loggers.Log(ex.Message, LoggingLevel.Error);
+                }
+
+                return count;
+            }
+        }
         public static double NetProfit { 
             get
             {
@@ -34,6 +69,7 @@ namespace TpSlManager
                 {
 
                     Core.Instance.Loggers.Log(ex);
+                    return -1;
                 }
                 return sum;
             }
@@ -107,10 +143,10 @@ namespace TpSlManager
             }
         }
 
-        public static void init(SlTpCondictionHolder<T> listOfDelegates, int maxshortexpo = 3, int maxlongexpo = 3)
+        public static void init(SlTpCondictionHolder<T> listOfDelegates, int maxshortexpo = 3, int maxlongexpo = 3, bool allowshort = true)
         {
             UnfilledIds = new List<string>();
-            //Orders = new List<Order>();
+            AllowShort = allowshort;
             OrderTypes = new Dictionary<Symbol,OrderType>();
             PartialiFilledIds = new List<Guid>();
             FilledIds = new List<string>();
@@ -127,15 +163,6 @@ namespace TpSlManager
 
         private static void Instance_TradeAdded(Trade obj)
         {
-            //if (obj.PositionImpactType == PositionImpactType.Open || Orders.Any(x => x.Id == obj.OrderId))
-            //{
-            //    Order _or = Orders.FirstOrDefault(x => x.Id == obj.OrderId);
-            //    if (SlTpItems.Any(x => x.Id == _or.Comment))
-            //    {
-            //        ListOfDelegates.Computator.PlaceOrder(obj, SlTpItems.FirstOrDefault(x => x.Id == _or.Comment));
-            //    }
-            //}
-
             foreach (SlTpItems item in SlTpItems)
             {
                item.UpdateaStatus(obj);
@@ -194,6 +221,9 @@ namespace TpSlManager
                 return;
             
             if (MaxLongExo <= LongExpo & reqParameters.Side == Side.Buy)
+                return;
+
+            if (!AllowShort && reqParameters.Side == Side.Sell)
                 return;
 
             try

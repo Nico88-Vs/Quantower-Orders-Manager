@@ -3,42 +3,42 @@ using System.Collections.Generic;
 using DivergentStrV0_1.C_Obj;
 using TradingPlatform.BusinessLayer;
 
-namespace DivergentStrV0_1
+namespace DivergentStrV0_1.Utils
 {
     #region enums
     public enum IchiLineIndex
-        {
-            //moltiplicatore
-            Tenkan_Sen = 0,
-            Kijun_Sen = 1,
-            Chikou_Span = 2,
-            Senkou_SpanA = 3,
-            Senkou_SpanB = 4,
+    {
+        //moltiplicatore
+        Tenkan_Sen = 0,
+        Kijun_Sen = 1,
+        Chikou_Span = 2,
+        Senkou_SpanA = 3,
+        Senkou_SpanB = 4,
 
-            //moltiplicatore secondo
-            Tenkan_Sen2 = 5,
-            Kijun_Sen2 = 6,
-            Chikou_Span2 = 7,
-            Senkou_SpanA2 = 8,
-            Senkou_SpanB2 = 9,
+        //moltiplicatore secondo
+        Tenkan_Sen2 = 5,
+        Kijun_Sen2 = 6,
+        Chikou_Span2 = 7,
+        Senkou_SpanA2 = 8,
+        Senkou_SpanB2 = 9,
 
-            //senza moltiplicatore
-            Tenkan_Sen0 = 10,
-            Kijun_Sen0 = 11,
-            Chikou_Span0 = 12,
-            Senkou_SpanA0 = 13,
-            Senkou_SpanB0 = 14,
+        //senza moltiplicatore
+        Tenkan_Sen0 = 10,
+        Kijun_Sen0 = 11,
+        Chikou_Span0 = 12,
+        Senkou_SpanA0 = 13,
+        Senkou_SpanB0 = 14,
 
-            LonGap = 16,
-            ShortGap = 17,
-            LonGap_Bigger = 18,
-            ShortGap_Bigger = 19,
-        }
+        LonGap = 16,
+        ShortGap = 17,
+        LonGap_Bigger = 18,
+        ShortGap_Bigger = 19,
+    }
     public enum VolumeLineIndex
-        {
-            Volume = 0,
-            Avarage = 1,
-        }
+    {
+        Volume = 0,
+        Avarage = 1,
+    }
     public enum CumulativeAbsorbtionIndex
     {
         Absorbtion = 0,
@@ -198,13 +198,13 @@ namespace DivergentStrV0_1
                 double bigbuy = signon_lineseries[Convert.ToInt32(IchiLineIndex.LonGap_Bigger)].GetValue();
                 double normalsell = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap)].GetValue();
                 double bigsell = signon_lineseries[Convert.ToInt32(IchiLineIndex.ShortGap_Bigger)].GetValue();
-               
+
 
                 if (normalbuy > 0)
                     return Signed.SignedLong;
                 else if (normalsell > 0)
                     return Signed.SignedShort;
-                
+
                 else if (bigbuy < 100000)
                     return Signed.SignedLong;
                 else if (bigsell < 100000)
@@ -229,9 +229,9 @@ namespace DivergentStrV0_1
             double PastAvg = volume_lineseries[Convert.ToInt32(VolumeLineIndex.Avarage)].GetValue(2);
             double Avg = volume_lineseries[Convert.ToInt32(VolumeLineIndex.Avarage)].GetValue(1);
 
-            if (Vol>=2*Avg || PastVol >= 2 * PastAvg)
+            if (Vol >= 2 * Avg || PastVol >= 2 * PastAvg)
                 return true;
-            else 
+            else
                 return false;
         }
         public static int DivergenceDetect(List<IHistoryItem> items)
@@ -318,6 +318,6 @@ namespace DivergentStrV0_1
 
 
 
-    
+
 }
 

@@ -24,6 +24,7 @@ namespace DivergentStrV0_1.C_Obj
         public Dictionary<Cloud, List<Cloud>> MidCloudDictionary { get; set; }
         public Dictionary<Cloud, List<Cloud>> SlowCloudDictionary { get; set; }
         public Dictionary<Cloud, List<Cloud>> MidInSlowDictionary { get; set; }
+        public int CurrentBuffer { get =>  this.Hd != null ? this.Hd.Count : 0; }
 
         public IchimokuCloudScenario Scenario { get; private set; } = IchimokuCloudScenario.UNDEFINED;
 
@@ -423,6 +424,17 @@ namespace DivergentStrV0_1.C_Obj
             }
         }
 
+        public Cloud GetTradableCloud(TF.TimeFrame tF)
+        {
+            //TODO: missing try catch
+            List< Cloud> selectedList = this.GetCorrectList(tF);
+
+            var correct = selectedList.First().Time_F.GetCorrectBuffer(this.TenkanPeriod);
+
+            return selectedList.LastOrDefault(x => x.Buffer < this.CurrentBuffer-correct);
+
+        }
+
         private Cloud GetCorrectCloud(TF tF)
         {
             switch (tF.Timeframe)
@@ -451,6 +463,20 @@ namespace DivergentStrV0_1.C_Obj
                     return this.CloudSlow;
                 default: return null;
             }
+        } 
+        
+        private List<Cloud> GetCorrectList(TF.TimeFrame tF)
+        {
+            switch (tF)
+            {
+                case TimeFrame.Fast:
+                    return this.Clouds;
+                case TimeFrame.Mid:
+                    return this.CloudsMid;
+                case TimeFrame.Slow:
+                    return this.CloudSlow;
+                default: return null;
+            }
         }
         private List<int> GetBuffer()
         {
@@ -462,16 +488,16 @@ namespace DivergentStrV0_1.C_Obj
             }
             return list;
         }
-        private void GetBuffer(LineSeries line)
-        {
-            List<int> list = GetBuffer();
+        //private void GetBuffer(LineSeries line)
+        //{
+        //    List<int> list = GetBuffer();
 
-            for (int i = 0; i < list.Count; i++)
-            {
-                line.SetValue(value: list[i], offset: list[i]);
-            }
+        //    for (int i = 0; i < list.Count; i++)
+        //    {
+        //        line.SetValue(value: list[i], offset: list[i]);
+        //    }
 
-        }
+        //}
         private void GetScenario()
         {
             if (!CloudSlow_IsRunning)
