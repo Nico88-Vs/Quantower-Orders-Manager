@@ -34,3 +34,13 @@ C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0_1.dll
 C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\refint\DivergentStrV0_1.dll
 C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\DivergentStrV0_1.pdb
 C:\Users\tagli\OneDrive\Desktop\QTStrategies\obj\Debug\ref\DivergentStrV0_1.dll
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.csproj.AssemblyReference.cache
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.GeneratedMSBuildEditorConfig.editorconfig
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.AssemblyInfoInputs.cache
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.AssemblyInfo.cs
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.csproj.CoreCompileInputs.cache
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.sourcelink.json
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.dll
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\refint\DivergentStrV0_1.dll
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.pdb
+D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\ref\DivergentStrV0_1.dll

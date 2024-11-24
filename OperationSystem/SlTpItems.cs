@@ -19,27 +19,32 @@ namespace TpSlManager
 
     public class SlTpItems
     {
+        #region attributi
         public PositionManagerStatus Status { get; set; }
         public string Id { get; set; }
         public Order EntryOrder { get; set; }
+        public OrderHistory EntryOrderHistory { get; set; }
         public List<Order> SlItems { get; set; }
         public List<Order> TpItems { get; set; }
         public string Comment { get; set; }
         public Position RelatedPosition { get; set; }
         private double StartingAmmount { get; set; }
+        public bool UsePosition { get; set; }
         public double NetProfit { get; set; } = 0;
         private List<string> UnAddedSl;
         private List<string> UnAddedTp;
         public double ClosedQuantity{ get; set; } = 0;
         //TODO: scenario partialy filled missing
-        public double Quantity => this.EntryOrder.TotalQuantity;
+        public double Quantity => this.EntryOrderHistory == null ? this.EntryOrder.TotalQuantity : this.EntryOrderHistory.TotalQuantity;
         private double FilledQuantity = 0;
         public Side Side => this.EntryOrder.Side;
-        public double EntryPrice => this.EntryOrder.Price;
+        public double EntryPrice => this.EntryOrderHistory == null ? this.EntryOrder.Price : this.EntryOrderHistory.AverageFillPrice;
+        #endregion
 
-        public SlTpItems(Order order, string guid, string comment = "")
+        public SlTpItems(Order order, string guid, bool useposition, string comment = "")
         {
             this.Status = PositionManagerStatus.Placed;
+            this.UsePosition = useposition;
             this.Id = guid;
             this.EntryOrder = order;
             this.SlItems = new List<Order>();
@@ -50,15 +55,36 @@ namespace TpSlManager
             this.UnAddedSl = new List<string>();
             this.UnAddedTp = new List<string>();
 
-            Core.Instance.PositionRemoved += this.Instance_PositionRemoved;
+            //Core.Instance.PositionRemoved += this.Instance_PositionRemoved;
         }
 
-        private void Instance_PositionRemoved(Position obj)
+        //private void Instance_PositionRemoved(Position obj)
+        //{
+        //    //if (this.EntryOrder.Status == OrderStatus.Opened)
+        //    //    return;
+        //    //TODO:generalizzare a tutti gli item
+        //    if (this.RelatedPosition.Id == obj.Id & UsePosition)
+        //    {
+        //        //HACK: provo con i tick
+        //        var cost = this.EntryOrder.Symbol.GetTickCost(this.EntryOrder.Price);
+        //        this.NetProfit = obj.GrossPnLTicks*cost;
+        //        this.ClosedAll();
+        //    }
+        //}
+
+        public void ClosePosition()
         {
-            if (this.RelatedPosition.Id == obj.Id)
+            try
             {
-                //this.NetProfit = obj.NetPnL.Value;
-                //this.ClosedAll();
+                OrderStatus or_status = this.EntryOrderHistory == null ? this.EntryOrder.Status : EntryOrderHistory.Status;
+                if (or_status != OrderStatus.Opened)
+                    //TODO:spesso e nullo
+                    Core.Instance.Positions.FirstOrDefault(x => x.Id == this.RelatedPosition.Id).Close();
+                this.ClosedAll();
+            }
+            catch (Exception ex)
+            {
+                Core.Instance.Loggers.Log(ex.Message, LoggingLevel.Error);
             }
         }
 
@@ -72,8 +98,11 @@ namespace TpSlManager
                 if (temPosition != null)
                 {
                     this.RelatedPosition = temPosition;
-                    this.StartingAmmount = this.RelatedPosition.Quantity-trade.Quantity;
+                    this.StartingAmmount = this.RelatedPosition.Quantity - trade.Quantity;
                 }
+                //HACK: aggiungo un controllo per chiudere tutto se nn trovo la posizione
+                else if (this.UsePosition & temPosition == null)
+                    this.ClosedAll();
             }
             catch (Exception)
             {
@@ -89,14 +118,22 @@ namespace TpSlManager
             if (this.Status == PositionManagerStatus.Closed)
                 return;
 
-            if (this.RelatedPosition == null)
-                this.CheckForPosition(trade);
-
             if (trade.PositionImpactType == PositionImpactType.Open)
             {
+                if (this.RelatedPosition == null)
+                    this.CheckForPosition(trade);
+
+                if (UsePosition)
+                {
+                    if(this.RelatedPosition == null)
+                    {
+                        this.ClosedAll();
+                        return;
+                    }
+                }
                 if (trade.OrderId == EntryOrder.Id)
                 {
-                    bool ramain = EntryOrder.RemainingQuantity == 0;
+                    bool ramain = this.EntryOrderHistory == null ? EntryOrder.RemainingQuantity == 0 : this.EntryOrderHistory.RemainingQuantity == 0;
                     this.FilledQuantity += trade.Quantity;
 
                     switch (ramain)
@@ -135,8 +172,8 @@ namespace TpSlManager
 
                 }
 
-                //HINT SOSPESO PERCHE NN LE CHIUDE TUTTE UTILIZZO UN SEMPLICE POSITION CHECK CHE SARA INFLUENZATO DA TRADE ESTERNI ALLA STAREGIA
-                if (this.FilledQuantity > 0)
+                //HINT: SOSPESO PERCHE NN LE CHIUDE TUTTE UTILIZZO UN SEMPLICE POSITION CHECK CHE SARA INFLUENZATO DA TRADE ESTERNI ALLA STAREGIA
+                if (this.FilledQuantity > 0 & !UsePosition)
                     if (this.ClosedQuantity >= this.FilledQuantity)
                         while(this.Status != PositionManagerStatus.Closed)
                             this.ClosedAll();
@@ -148,9 +185,7 @@ namespace TpSlManager
         {
             if (this.EntryOrder.Id == history.Id)
             {
-                var or = Core.Instance.GetOrderById(history.Id);
-                if (or != null) 
-                    this.EntryOrder = Core.Instance.GetOrderById(history.Id);
+                this.EntryOrderHistory = history;
             }
 
             if (this.SlItems.Any(x => x.Id == history.Id))
@@ -171,34 +206,52 @@ namespace TpSlManager
                 this.TpItems[idx2] = obj_1;
             }
         }
-
-        private void ClosedAll()
+        public void ClosedAll()
         {
             this.Status = PositionManagerStatus.Closed;
 
             try
             {
-                Core.Instance.CancelOrder(this.EntryOrder);
+                var orders = Core.Instance.Orders.Where(x => x.Comment == this.Id || x.Comment == "Order is null");
+                foreach ( var order in orders)
+                {
+                    var resoult = Core.Instance.CancelOrder(order);
 
-                try
-                {
-                    foreach (Order order in SlItems)
-                        Core.Instance.CancelOrder(order);
-                }
-                catch (Exception)
-                {
-                    this.DeepOrderCanceling(this.SlItems);
+                    if (resoult.Status == TradingOperationResultStatus.Failure)
+                    {
+                        var cacca = "cacca";
+                    }
                 }
 
-                try
-                {
-                    foreach (Order order in TpItems)
-                        Core.Instance.CancelOrder(order);
-                }
-                catch (Exception)
-                {
-                    this.DeepOrderCanceling(this.TpItems);
-                }
+
+                #region Deprecated
+                //TODO: manca una verifica
+                //Core.Instance.CancelOrder(this.EntryOrder);
+
+                //try
+                //{
+                //    foreach (Order order in SlItems)
+                //    {
+                //        var r = Core.Instance.CancelOrder(order);
+                //    }
+                //}
+                //catch (Exception)
+                //{
+                //    this.DeepOrderCanceling(this.SlItems);
+                //}
+
+                //try
+                //{
+                //    foreach (Order order in TpItems)
+                //    {
+                //        var y = Core.Instance.CancelOrder(order);
+                //    }
+                //}
+                //catch (Exception)
+                //{
+                //    this.DeepOrderCanceling(this.TpItems);
+                //}
+                #endregion
             }
             catch (Exception ex)
             {
@@ -209,12 +262,10 @@ namespace TpSlManager
             {
                 TpItems.Clear();
                 SlItems.Clear();
-
             }
 
 
         }
-
         public void AddTemporarySl(string orderId) => this.UnAddedSl.Add(orderId);
         public void AddTemporaryTp(string orderId) => this.UnAddedTp.Add(orderId);
         public void ConverTemIdIntOrder(Order order)
@@ -245,23 +296,23 @@ namespace TpSlManager
         }
         private void DeepOrderCanceling(List<Order> orders)
         {
-            //foreach (Order order in orders)
-            //{
+            foreach (Order order in orders)
+            {
 
-            //    try
-            //    {
-            //        Order _o = Core.Instance.Orders.Where(x => x.Account == order.Account & x.Symbol == order.Symbol
-            //                 & x.Side == order.Side & x.RemainingQuantity == order.RemainingQuantity & x.Price == order.Price & x.AdditionalInfo == order.AdditionalInfo).FirstOrDefault();
+                try
+                {
+                    Order _o = Core.Instance.Orders.Where(x => x.Account == order.Account & x.Symbol == order.Symbol
+                             & x.Side == order.Side & x.RemainingQuantity == order.RemainingQuantity & x.Price == order.Price & x.AdditionalInfo == order.AdditionalInfo).FirstOrDefault();
 
-            //        Core.Instance.CancelOrder(order);
-            //    }
-            //    catch (Exception ex)
-            //    {
+                    var resoult = Core.Instance.CancelOrder(order);
+                }
+                catch (Exception ex)
+                {
 
-            //        Core.Instance.Loggers.Log($"Failed to cancel reamain{ex.Message}");
-            //    }
-                
-            //}
+                    Core.Instance.Loggers.Log($"Failed to cancel reamain{ex.Message}");
+                }
+
+            }
         }
     }
 }

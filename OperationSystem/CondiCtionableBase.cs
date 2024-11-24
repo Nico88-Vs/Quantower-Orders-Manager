@@ -17,6 +17,8 @@ namespace DivergentStrV0_1.OperationSystem
         public virtual int ShortProfittableCount { get => TpSlManager<R>.ShortProfittableCount; }
         public virtual int ShortOpenCount { get => TpSlManager<R>.ShortOpenCount; }
         public virtual int LongOpenCount { get => TpSlManager<R>.LongOpenCount; }
+        public virtual int LongPositionCount { get => TpSlManager<R>.LongPositions; }
+        public virtual int ShortPositionCount { get => TpSlManager<R>.ShortPositions; }
         public virtual string ConditionName { get; }
         public virtual string Description { get; }
         public virtual Account Account { get; }
@@ -24,6 +26,8 @@ namespace DivergentStrV0_1.OperationSystem
         public virtual double Quantity { get; }
         public virtual int MaxShortExo { get; }
         public virtual int MaxLongExo { get; }
+        public virtual bool UsePosition { get; }
+        public virtual bool AllowShort { get; }
         public virtual SlTpCondictionHolder<R> CondictionHolder { get; protected set; }
 
         // Metodi astratti che devono essere implementati dalle classi derivate
@@ -35,18 +39,20 @@ namespace DivergentStrV0_1.OperationSystem
         public abstract void GetMetrics();
         public abstract void Update(object obj);
 
-        protected ConditionableBase(Account account, Symbol symbol, double quantity, int maxShortExpo = 1, int maxLongExpo = 1)
+        protected ConditionableBase(Account account, Symbol symbol, double quantity, bool useposition = true, int maxShortExpo = 1, int maxLongExpo = 1, bool allowshorts = true)
         {
             MaxShortExo = maxShortExpo;
             MaxLongExo = maxLongExpo;
             Account = account;
             Symbol = symbol;
             Quantity = quantity;
+            UsePosition = useposition;
+            AllowShort = allowshorts;
         }
 
         public void ManagerInit()
         {
-            TpSlManager<R>.init(CondictionHolder, MaxShortExo, MaxLongExo);
+            TpSlManager<R>.init(CondictionHolder, this.UsePosition , MaxShortExo, MaxLongExo, AllowShort);
         }
 
         // Metodo che può essere sovrascritto o lasciato invariato

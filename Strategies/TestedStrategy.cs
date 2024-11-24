@@ -37,8 +37,11 @@ namespace DivergentStrV0_1.Strategies
         public override int MaxShortExo => base.MaxShortExo;
 
         public override int MaxLongExo => base.MaxLongExo;
+
+        //TODO: manca use position
+
         public TestedStrategy(Indicator ichichimokuIndicator, Account account, Symbol symbol, double quantity, int maxShortExpo = 1, int maxLongExpo = 1)
-            : base(account, symbol, quantity, maxShortExpo, maxLongExpo)
+            : base(account, symbol, quantity, true, maxShortExpo, maxLongExpo)
         {
 
         }

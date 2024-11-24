@@ -22,6 +22,7 @@ namespace TpSlManager
         private static Dictionary<Symbol,OrderType> OrderTypes { get; set; }
         private static int MaxShortExo;
         private static int MaxLongExo;
+        private static bool UsePosition;
         #region metrics
         public static int ShortOpenCount
         {
@@ -181,9 +182,61 @@ namespace TpSlManager
                 return sum;
             }
         }
+        public static int LongPositions
+        {
+            get
+            {
+                int sum = 0;
+                List<Position> positions = new List<Position>();
+                List<string> selected = new List<string>();
+                try
+                {
+                    positions = SlTpItems.Where(x => x.Side == Side.Buy & x.RelatedPosition != null).Select(x => x.RelatedPosition).ToList();
+                    foreach (var position in positions)
+                    {
+                        if (!selected.Contains(position.Id))
+                            selected.Add(position.Id);
+                    }
+
+                    sum = selected.Count;
+                }
+                catch (Exception ex)
+                {
+                    Core.Instance.Loggers.Log(ex);
+                }
+                return sum;
+            }
+        }
+        public static int ShortPositions
+        {
+            get
+            {
+                int sum = 0;
+                List<Position> positions = new List<Position>();
+                List<string> selected = new List<string>();
+                try
+                {
+                    positions = SlTpItems.Where(x => x.Side == Side.Sell & x.RelatedPosition != null).Select(x => x.RelatedPosition).ToList();
+                    foreach (var position in positions)
+                    {
+                        if (!selected.Contains(position.Id))
+                            selected.Add(position.Id);
+                    }
+
+                    sum = selected.Count;
+                }
+                catch (Exception ex)
+                {
+                    Core.Instance.Loggers.Log(ex);
+                }
+                return sum;
+            }
+
+
+        }
         #endregion
 
-        public static void init(SlTpCondictionHolder<T> listOfDelegates, int maxshortexpo = 3, int maxlongexpo = 3, bool allowshort = true)
+        public static void init(SlTpCondictionHolder<T> listOfDelegates, bool useposition, int maxshortexpo = 3, int maxlongexpo = 3, bool allowshort = true)
         {
             UnfilledIds = new List<string>();
             AllowShort = allowshort;
@@ -194,11 +247,29 @@ namespace TpSlManager
             ListOfDelegates = listOfDelegates;
             MaxLongExo = maxlongexpo;
             MaxShortExo = maxshortexpo;
+            UsePosition = useposition;
 
             // Sottoscrizione all'evento
             Core.Instance.OrderAdded += Instance_OrderAdded;
             Core.Instance.OrdersHistoryAdded += Instance_OrdersHistoryAdded;
             Core.Instance.TradeAdded += Instance_TradeAdded;
+            Core.Instance.PositionRemoved += Instance_PositionRemoved;
+        }
+
+        private static void Instance_PositionRemoved(Position obj)
+        {
+            foreach (var item in SlTpItems.Where(x => x.Status != PositionManagerStatus.Closed))
+            {
+                var y = SlTpItems.Where(x => x.RelatedPosition.Id == obj.Id).Count();
+                if (item.RelatedPosition.Id == obj.Id & UsePosition)
+                {
+                    //HACK: provo con i tick
+                    var cost = item.EntryOrder.Symbol.GetTickCost(item.EntryOrder.Price);
+                    item.NetProfit = obj.GrossPnLTicks * cost;
+                    item.ClosedAll();
+                }
+            }
+            
         }
 
         private static void Instance_TradeAdded(Trade obj)
@@ -222,7 +293,7 @@ namespace TpSlManager
             if (UnfilledIds.Contains(obj.Comment))
             {
                 UnfilledIds.Remove(obj.Comment);
-                SlTpItems.Add(new SlTpItems(obj, obj.Comment));
+                SlTpItems.Add(new SlTpItems(obj, obj.Comment, useposition:UsePosition));
                 if (SlTpItems.Any(x => x.Id == obj.Comment))
                 {
                     ListOfDelegates.Computator.PlaceOrder(obj, SlTpItems.FirstOrDefault(x => x.Id == obj.Comment));
@@ -279,7 +350,7 @@ namespace TpSlManager
                     OrderTypeId = OrderTypes[reqParameters.Symbol].Id,
                     AccountId = reqParameters.AccountId,
                     CancellationToken = reqParameters.CancellationToken,
-                    TimeInForce = reqParameters.TimeInForce,
+                    TimeInForce = TimeInForce.GTC,
                     ExpirationTime = reqParameters.ExpirationTime,
                     Quantity = reqParameters.Quantity,
                     AdditionalParameters = new List<SettingItem>
@@ -343,12 +414,22 @@ namespace TpSlManager
             else
                 return false;
         }
+        public static List<SlTpItems> FindAllOpened(Side side)
+        {
+            var resoult = new List<SlTpItems>();
+            var _try = SlTpItems.Where(x => x.Side == side & x.Status != PositionManagerStatus.Closed & x.Status != PositionManagerStatus.Placed).ToList();
+            if (_try.Any())
+                return _try;
+            else
+                return resoult; 
+        }
 
         public static void Stop()
         {
             Core.Instance.OrderAdded -= Instance_OrderAdded;
             Core.Instance.OrdersHistoryAdded -= Instance_OrdersHistoryAdded;
             Core.Instance.TradeAdded -= Instance_TradeAdded;
+            Core.Instance.PositionRemoved -= Instance_PositionRemoved;
         }
     }
 }

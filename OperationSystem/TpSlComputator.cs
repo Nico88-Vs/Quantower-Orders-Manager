@@ -91,11 +91,17 @@ namespace TpSlManager
         }
         public void UpdateOrder(UpdateOrderDelegate updateDelegaate, Object delegateParameter,  Order order)
         {
+            var price = updateDelegaate(delegateParameter);
+
+            if (price < 0)
+                return;
+
             try
             {
                 var request = new ModifyOrderRequestParameters(order);
 
-                request.Price = updateDelegaate(delegateParameter);
+                request.Price = price;
+                request.TriggerPrice = price;
                 request.AdditionalParameters = new List<SettingItem>
                 {
                     new SettingItemBoolean(OrderType.REDUCE_ONLY, true)
@@ -122,7 +128,7 @@ namespace TpSlManager
                     {
                         for (int i = 0; i < this.sl_items; i++)
                         {
-                            if (item.SlItems.Count != this.tp_items)
+                            if (item.SlItems.Count != this.sl_items)
                             {
                                 Core.Instance.Loggers.Log("Unmaching Orders Items", LoggingLevel.Error);
                                 return;

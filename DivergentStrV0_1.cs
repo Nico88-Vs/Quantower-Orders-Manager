@@ -19,8 +19,6 @@ using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1
 {
-    //TODO dedfinire i limiti d ingresso ()
-    //TODO utilizzare approccio sentiment , segnale , conferema 
     //TODO trailing Stop 
     //TODO ichimoku target
     //TODO gestire stop dinamici 
@@ -39,14 +37,21 @@ namespace DivergentStrV0_1
         public int _HdRequireDais = 31;
         [InputParameter("Tick delay", 3, 0, 100, increment: 1)]
         public int entry_tick_delay = 5;
-        [InputParameter("Absorbtion Period", 4)]
-        public Period _absorbtionPeriod = Period.MIN30;
         [InputParameter("Quantity", 5)]
         public double _Quantity = 1;
         [InputParameter("Max Short Expo", 6, minimum: 1, maximum: 10, decimalPlaces: 0)]
         public int _MaxShortExpo = 3;
         [InputParameter("Max Long Expo", 7, minimum: 1, maximum: 10, decimalPlaces: 0)]
-        public int _MaxLongExpo = 3;
+        public int _MaxLongExpo = 3; 
+        [InputParameter("Use Position", 8)]
+        public bool _UsePosition = true;
+        [InputParameter("Allow Shorts", 9)]
+        public bool _AllowShorts = true;
+        [InputParameter("Sl Percentage", 10, 0.5, 200, 0.1)]
+        public double _SlPercent = 1.00;
+        [InputParameter("Tp Percentage", 10, 0.7, 200, 0.1)]
+        public double _TPercentage = 2.5;
+
 
         public IchiManager IchiManager { get; set; }
         private HistoricalData hd;
@@ -67,7 +72,7 @@ namespace DivergentStrV0_1
         public DivergentStrV0_1()
             : base()
         {
-            this.Name = "IChiStrV0_1";
+            this.Name = "IChiStrV0_3";
             this.Description = "Gap Divergency ichi levels";
             //TODO: non sto inserendo il bid ask type
         }
@@ -90,9 +95,9 @@ namespace DivergentStrV0_1
                 this.hd.VolumeAnalysisCalculationProgress.ProgressChanged -= this.VolumeAnalysisCalculationProgress_ProgressChanged;
             }
 
-            if (this.Conditionable is OnlyBuyAtLowStrategy)
+            if (this.Conditionable is Reverse)
             {
-                var temp = (OnlyBuyAtLowStrategy)this.Conditionable;
+                var temp = (Reverse)this.Conditionable;
             }
 
             if (this.IchiManager != null)
@@ -102,7 +107,7 @@ namespace DivergentStrV0_1
         }
         protected override void OnRemove()
         {
-            TpSlManager<int>.Stop();
+            TpSlManager<Cloud>.Stop();
             this.Conditionable.Close();
             //TODO Possibilita di flattare o simili
             try
@@ -213,13 +218,13 @@ namespace DivergentStrV0_1
                 Ichimoku = this.GenerateIndicator("IchiMTreTempi V.1");
                 Volume = this.GenerateIndicator("Volume");
 
-                this.Conditionable = new OnlyBuyAtLowStrategy(this.Ichimoku, this.Volume, this._Account, this._Symbol, this._Quantity /*maxLongExpo : this._MaxLongExpo, maxShortExpo: this._MaxShortExpo*/);
+                this.Conditionable = new Reverse(this.Ichimoku, this.Volume, this._Account, this._Symbol, this._Quantity, _SlPercent, _TPercentage, maxShortExpo: this._MaxShortExpo, maxLongExpo: this._MaxLongExpo, this._UsePosition, this._AllowShorts);
 
                 this.readyToGo = true;
             }
 
             //this.IchiManager.Update();
-            this.Conditionable.Update(null);
+            this.Conditionable.Update(e.HistoryItem[PriceType.Close]);
         }
 
         #endregion
@@ -319,7 +324,8 @@ namespace DivergentStrV0_1
             meter.CreateObservableCounter("PositiveShortCount", () => this.Conditionable != null ? this.Conditionable.ShortProfittableCount : -1);
             meter.CreateObservableCounter("PositiveLongCount", () => this.Conditionable != null ? this.Conditionable.LongProfittableCount : -1);
             meter.CreateObservableCounter("Short on Run", () => this.Conditionable != null & this.Conditionable.ShortOpenCount > 0 ? this.Conditionable.ShortOpenCount : -1);
-
+            meter.CreateObservableCounter("Short Position Count", () => this.Conditionable != null & this.Conditionable.ShortPositionCount > 0 ? this.Conditionable.ShortOpenCount : -1);
+            meter.CreateObservableCounter("Long Position Count", () => this.Conditionable != null & this.Conditionable.LongPositionCount > 0 ? this.Conditionable.ShortOpenCount : -1);
         }
         #endregion
     }

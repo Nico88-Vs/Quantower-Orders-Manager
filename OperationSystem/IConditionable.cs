@@ -20,6 +20,8 @@ namespace DivergentStrV0_1.OperationSystem
         public int LongOpenCount { get; }
         public int LongExpo { get; }
         public int ShortExpo { get; }
+        public int LongPositionCount { get; }
+        public int ShortPositionCount { get; }
         string ConditionName { get; }
 
         public void Update(object obj);

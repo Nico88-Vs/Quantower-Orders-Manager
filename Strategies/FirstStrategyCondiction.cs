@@ -32,8 +32,9 @@ namespace DivergentStrV0_1.Strategies
         private IchiManager _Ichimanager;
         private HistoricalData _Hd;
 
+        //TODO: manca use position
         public FirstStrategyCondiction(Indicator ichichimokuIndicator, Account account, Symbol symbol, double quantity, int maxShortExpo = 1, int maxLongExpo = 1)
-            : base(account, symbol, quantity, maxShortExpo, maxLongExpo)
+            : base(account, symbol, quantity, false, maxShortExpo, maxLongExpo)
         {
             _IchimokuIndicator = ichichimokuIndicator;
             StartIchimoku(ichichimokuIndicator.HistoricalData);

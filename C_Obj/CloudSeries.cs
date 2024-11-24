@@ -423,15 +423,21 @@ namespace DivergentStrV0_1.C_Obj
                     break;
             }
         }
-
-        public Cloud GetTradableCloud(TF.TimeFrame tF)
+        /// <summary>
+        /// Should retourn the tradable cloud with his own buffer index for a specific moment 
+        /// </summary>
+        /// <param name="tF"></param>
+        /// <returns></returns>
+        public KeyValuePair<Cloud,int> GetTradableCloud(TF.TimeFrame tF)
         {
             //TODO: missing try catch
             List< Cloud> selectedList = this.GetCorrectList(tF);
 
             var correct = selectedList.First().Time_F.GetCorrectBuffer(this.TenkanPeriod);
 
-            return selectedList.LastOrDefault(x => x.Buffer < this.CurrentBuffer-correct);
+            var cloud =  selectedList.LastOrDefault(x => x.Buffer < this.CurrentBuffer-correct);
+
+            return new KeyValuePair<Cloud, int>(cloud, (this.CurrentBuffer - correct) - cloud.Buffer);
 
         }
 
