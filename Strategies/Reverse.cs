@@ -3,6 +3,7 @@ using DivergentStrV0_1.OperationSystem;
 using DivergentStrV0_1.Utils;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,14 +14,15 @@ namespace DivergentStrV0_1.Strategies
 {
     #region Local TODO
     //TODO logic: usare solo gli high >>>>>>>>> ceck
-    //TODO logic: non cancellare >>>>>>>>> done
+    //TODO logic: non cancellare al cross della nuvola >>>>>>>>> done
     //TODO logic: evitare i vincoli sul colore deella slow >>>>>>>>> aborted
     //TODO logic: verificare la distanza della nuvola >>>>>>>>> ceck
-    //TODO logic: un uscita al origine della slow se maggiore di x >>>>> HACK InProgress
+    //TODO logic: un uscita al origine della slow se maggiore di x >>>>> HACK check
     //TODO logic: eliminare il fastidioso update >>>>  HACK sospeso
     //TODO logic: usare lo stop a 1 >>>> HACK: dai setting
     //TODO logic: usare una sola posizione >>>> HACK: dai setting
-    //TODO logic: un uscita al cross della verde che entra nella nuvola se maggiore di x con conseguente stop a 0
+    //TODO logic: un uscita al cross della verde che entra nella nuvola se maggiore
+    //di x con conseguente stop a 0 >>>> HACK: in progress
     //TODO logic: un uscita al segnale opposto , se innescato dal target
     //TODO logic: dare un po di respiro al ingresso
     //HACK trading: Testare ingressi su WAP o chiusura di candela del livello
@@ -81,7 +83,9 @@ namespace DivergentStrV0_1.Strategies
                 Comment = "new order",
             };
 
+
             TpSlManager<int>.PlaceOrder(placeHoldeReq);
+
 
             var openedOppoitePosition = TpSlManager<int>.FindAllOpened(side == Side.Buy ? Side.Sell : Side.Buy);
 
@@ -155,9 +159,22 @@ namespace DivergentStrV0_1.Strategies
         /// <param name="side"></param>
         private void CancellUslessOrder(Side side)
         {
-            var list = TpSlManager<Cloud>.SlTpItems.Where(x => x.Side == side & x.Status == PositionManagerStatus.Placed).ToList();
-            foreach (var item in list)
-                item.ClosedAll();
+            try
+            {
+                var list = TpSlManager<Cloud>.SlTpItems.Where(x => x.Side == side & x.Status == PositionManagerStatus.Placed).ToList();
+                if (list.Count > 0)
+                {
+                    foreach (var item in list)
+                        item.ClosedAll();
+                }
+                
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            
         }
 
         #endregion
@@ -182,30 +199,28 @@ namespace DivergentStrV0_1.Strategies
                     case EventCrosArg.Gold_midt:
                         bestprice = this._Ichimanager.CloudSeries.MidCloudDictionary[cloud].Select(x => x.OriginPrice).ToList().Min();
                         convinient = (bestprice > 0 & bestprice < e.Price);
-                        //HACK: temporaneo
-                        //this.CancellUslessOrder(Side.Sell);
+                        
                         if (AllowToLong & tradable_Cloud.Key.Color != CloudColor.green & isdeltamax & convinient)
                         {
                             this.SlowTradableCloud = tradable_Cloud.Key;
                             if (bestprice > 0 & bestprice < price)
                             {
-                                //this.CloseOpposiTeTrades(Side.Sell);
                                 Trade(Side.Buy, bestprice);
+                                this.CancellUslessOrder(Side.Sell);
                             }
                         }
                         break;
                     case EventCrosArg.Dead_mid:
                         bestprice = this._Ichimanager.CloudSeries.MidCloudDictionary[cloud].Select(x => x.OriginPrice).ToList().Max();
                         convinient = (bestprice > 0 & bestprice > e.Price);
-                        //HACK: temporaneo
-                        //this.CancellUslessOrder(Side.Buy);
+                        
                         if (AllowToShort & tradable_Cloud.Key.Color != CloudColor.red & isdeltamax & convinient)
                         {
                             this.SlowTradableCloud = tradable_Cloud.Key;
                             if (bestprice > 0 & bestprice > price)
                             {
-                                //this.CloseOpposiTeTrades(Side.Buy);
                                 Trade(Side.Sell, bestprice);
+                                this.CancellUslessOrder(Side.Buy);
                             }
                         }
                         break;

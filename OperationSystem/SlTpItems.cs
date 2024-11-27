@@ -29,6 +29,7 @@ namespace TpSlManager
         public string Comment { get; set; }
         public Position RelatedPosition { get; set; }
         private double StartingAmmount { get; set; }
+        public event EventHandler<Order> OrderFilled;
         public bool UsePosition { get; set; }
         public double NetProfit { get; set; } = 0;
         private List<string> UnAddedSl;
