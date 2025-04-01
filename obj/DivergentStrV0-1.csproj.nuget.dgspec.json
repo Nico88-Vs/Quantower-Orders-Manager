@@ -1,25 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\source\\ClonedRepo\\OrdManagerNewVersion\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {}
+    "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj": {}
   },
   "projects": {
-    "D:\\source\\ClonedRepo\\OrdManagerNewVersion\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {
+    "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\source\\ClonedRepo\\OrdManagerNewVersion\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
+        "projectUniqueName": "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj",
         "projectName": "DivergentStrV0_1",
-        "projectPath": "D:\\source\\ClonedRepo\\OrdManagerNewVersion\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
+        "projectPath": "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "D:\\source\\ClonedRepo\\OrdManagerNewVersion\\Quantower-Orders-Manager\\obj\\",
+        "outputPath": "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files\\DevExpress 23.1\\Components\\Offline Packages",
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
           "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\DevExpress 23.1.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -28,7 +26,6 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\DevExpress 23.1\\Components\\System\\Components\\Packages": {},
           "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
