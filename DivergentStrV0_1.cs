@@ -2,19 +2,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Xml.Linq;
-using DivergentStrV0_1.C_Obj;
-using DivergentStrV0_1.OperationSystem;
+using DivergentStrV0_1.OperationSystemAdv;
 using DivergentStrV0_1.Strategies;
 using DivergentStrV0_1.Utils;
-using TpSlManager;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1
@@ -58,8 +50,7 @@ namespace DivergentStrV0_1
         private Indicator Ichimoku;
         private Indicator Volume;
         private Indicator CumulativeAbsorbtion;
-        private SlTpCondictionHolder<int> condiHolder { get; set; }
-        private IConditionable Conditionable { get; set; }
+        private IConditionable _conditionable;
 
         private double procesPercent => this.hd != null &&
                               this.hd.VolumeAnalysisCalculationProgress != null ? this.hd.VolumeAnalysisCalculationProgress.ProgressPercent : 0;
@@ -95,11 +86,6 @@ namespace DivergentStrV0_1
                 this.hd.VolumeAnalysisCalculationProgress.ProgressChanged -= this.VolumeAnalysisCalculationProgress_ProgressChanged;
             }
 
-            if (this.Conditionable is Reverse)
-            {
-                var temp = (Reverse)this.Conditionable;
-            }
-
             if (this.IchiManager != null)
             {
                 this.IchiManager.Stop();
@@ -107,9 +93,6 @@ namespace DivergentStrV0_1
         }
         protected override void OnRemove()
         {
-            TpSlManager<Cloud>.Stop();
-            this.Conditionable.Close();
-            //TODO Possibilita di flattare o simili
             try
             {
                 Core.Instance.Symbols.FirstOrDefault(x => x.Name == "Whatever you Want");
@@ -151,8 +134,6 @@ namespace DivergentStrV0_1
                         this.hd.VolumeAnalysisCalculationProgress.ProgressChanged += this.VolumeAnalysisCalculationProgress_ProgressChanged;
                     }
 
-                    //this.condiHolder = this.createSlcondiction();
-                    //TpSlManager<int>.init(this.condiHolder);
                 }
                 finally
                 {
@@ -213,18 +194,15 @@ namespace DivergentStrV0_1
         }
         private void Hd_NewHistoryItem(object sender, HistoryEventArgs e)
         {
-            if (!this.readyToGo)
+            if (this._conditionable == null)
             {
-                Ichimoku = this.GenerateIndicator("IchiMTreTempi V.1");
-                Volume = this.GenerateIndicator("Volume");
-
-                this.Conditionable = new Reverse(this.Ichimoku, this.Volume, this._Account, this._Symbol, this._Quantity, _SlPercent, _TPercentage, maxShortExpo: this._MaxShortExpo, maxLongExpo: this._MaxLongExpo, this._UsePosition, this._AllowShorts);
-
-                this.readyToGo = true;
+                this._conditionable = new StrategyTest(this._Account, this._Symbol, new FixedSlTpStrategy(1.1,1.1));
             }
-
-            //this.IchiManager.Update();
-            this.Conditionable.Update(e.HistoryItem[PriceType.Close]);
+            else
+            {
+                var trade = this.hd[1][PriceType.Open] < this.hd[1][PriceType.Close] ? true : false;
+                this._conditionable.Update(new TradeData(trade, this.hd[0][PriceType.Open]));
+            }
         }
 
         #endregion
@@ -260,8 +238,6 @@ namespace DivergentStrV0_1
                 Comment = "new order",
             };
 
-            TpSlManager<int>.PlaceOrder(placeHoldeReq);
-
         }
 
         private Indicator GenerateIndicator(string indi_names, IList<SettingItem> indi_settings = null)
@@ -289,43 +265,11 @@ namespace DivergentStrV0_1
             return resoult;
         }
 
-        //private SlTpCondictionHolder<int> createSlcondiction()
-        //{
-        //    // Inizializzazione corretta del delegato per SL
-        //    SlTpCondictionHolder<int>.DefineSl[] slDelegates = new SlTpCondictionHolder<int>.DefineSl[]
-        //    {
-        //        this.GetSlTp
-        //    };
-
-        //    // Inizializzazione corretta del delegato per TP (usiamo un delegato vuoto o simile)
-        //    SlTpCondictionHolder<int>.DefineTp[] tpDelegates = new SlTpCondictionHolder<int>.DefineTp[]
-        //    {
-        //        this.GetSlTp
-        //    };
-        //    SlTpCondictionHolder<int> slh = new SlTpCondictionHolder<int>(new int[1] { 0 }, new int[1] { 0 }, slDelegates, tpDelegates);
-        //    return slh;
-        //}
-
-        //public double GetSlTp(int lineseriesIndex)
-        //{
-        //    return this.Ichimoku.GetValue(lineIndex: lineseriesIndex);
-        //}
 
         //TODO Update Those Metrics
         protected override void OnInitializeMetrics(Meter meter)
         {
             base.OnInitializeMetrics(meter);
-
-            meter.CreateObservableCounter("Balance", () => this.Conditionable != null ? this.Conditionable.Account.Balance : -1);
-            meter.CreateObservableCounter("Long on Run", () => this.Conditionable != null ? this.Conditionable.LongOpenCount : -1);
-            meter.CreateObservableCounter("Net Profit", () => this.Conditionable != null & this.Conditionable.NetProfit > 0 ? this.Conditionable.NetProfit : -1);
-            meter.CreateObservableCounter("LongCount", () => this.Conditionable != null ? this.Conditionable.LongCount : -1);
-            meter.CreateObservableCounter("ShortCount", () => this.Conditionable != null ? this.Conditionable.ShortCount : -1);
-            meter.CreateObservableCounter("PositiveShortCount", () => this.Conditionable != null ? this.Conditionable.ShortProfittableCount : -1);
-            meter.CreateObservableCounter("PositiveLongCount", () => this.Conditionable != null ? this.Conditionable.LongProfittableCount : -1);
-            meter.CreateObservableCounter("Short on Run", () => this.Conditionable != null & this.Conditionable.ShortOpenCount > 0 ? this.Conditionable.ShortOpenCount : -1);
-            meter.CreateObservableCounter("Short Position Count", () => this.Conditionable != null & this.Conditionable.ShortPositionCount > 0 ? this.Conditionable.ShortOpenCount : -1);
-            meter.CreateObservableCounter("Long Position Count", () => this.Conditionable != null & this.Conditionable.LongPositionCount > 0 ? this.Conditionable.ShortOpenCount : -1);
         }
         #endregion
     }
