@@ -11,12 +11,12 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("DivergentStrV0_1")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("CondictionalStrategyExample")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9a6212ed1420ef0889b6011bd7420cf4d49ade22")]
-[assembly: System.Reflection.AssemblyProductAttribute("DivergentStrV0_1")]
-[assembly: System.Reflection.AssemblyTitleAttribute("DivergentStrV0_1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5e7d8bffa7cb2ef4fb405392b2c93a6466243e17")]
+[assembly: System.Reflection.AssemblyProductAttribute("CondictionalStrategyExample")]
+[assembly: System.Reflection.AssemblyTitleAttribute("CondictionalStrategyExample")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 
 // Generato dalla classe WriteCodeFragment di MSBuild.

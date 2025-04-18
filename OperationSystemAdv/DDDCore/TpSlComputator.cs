@@ -16,7 +16,10 @@ namespace DivergentStrV0_1.OperationSystemAdv
             _holder = holder;
         }
 
-        //TODO: Impementare i metodi CreateStopLoss e CreateTakeProfit Dispatcher events
+        //REQ: Adattare l oggetto a ad invii multipli
+        //REQ: Notificare i risultati
+        //REQ: Make it reduce only
+        //REQ: Fix or_req_parameter
 
         public PlaceOrderRequestParameters CreateStopLoss(T data, string id, double quantity)
         {
@@ -51,26 +54,26 @@ namespace DivergentStrV0_1.OperationSystemAdv
             };
         }
 
-        public IEnumerable<Order> PlaceOrders(T data, string id, double quantity)
+        public IEnumerable<TradingOperationResult> PlaceOrders(T data, string id, double quantity)
         {
-            var result = new List<Order>();
+            var result = new List<TradingOperationResult>();
 
             var sl = CreateStopLoss(data, id, quantity);
             var tp = CreateTakeProfit(data, id, quantity);
 
-            //if (sl != null)
-            //{
-            //    var r1 = Core.Instance.PlaceOrder(sl);
-            //    if (r1.Status == TradingOperationResultStatus.Success)
-            //        result.Add(r1.Order);
-            //}
+            if (sl != null)
+            {
+                var r1 = Core.Instance.PlaceOrder(sl);
+                if (r1.Status == TradingOperationResultStatus.Success)
+                    result.Add(r1);
+            }
 
-            //if (tp != null)
-            //{
-            //    var r2 = Core.Instance.PlaceOrder(tp);
-            //    if (r2.Status == TradingOperationResultStatus.Success)
-            //        result.Add(r2.Order);
-            //}
+            if (tp != null)
+            {
+                var r2 = Core.Instance.PlaceOrder(tp);
+                if (r2.Status == TradingOperationResultStatus.Success)
+                    result.Add(r2);
+            }
 
             return result;
         }
