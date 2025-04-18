@@ -16,11 +16,8 @@ namespace DivergentStrV0_1.Strategies
             return Account.Balance;
         }
 
-        public override void Trade(Side side, double price)
-        {
-            // Implementazione specifica per il test
-            base.Trade(side, price);
-        }
+        public  void CustomTrade(Side side, double price) => this.Trade(side, price, price, price);
+      
 
         public override void Update(object obj)
         {
@@ -29,7 +26,7 @@ namespace DivergentStrV0_1.Strategies
 
                 if (tradeData.Tarde)
                 {
-                    Trade(Side.Buy, tradeData.Price);
+                    CustomTrade(Side.Buy, tradeData.Price);
                 }
             }
            

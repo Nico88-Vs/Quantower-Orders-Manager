@@ -7,30 +7,30 @@ using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv
 {
-    public class SlTpCondictionHolder<T>
-    {
-        //REQ: Adattare l oggetto a restituire valori multipli
-        //TODO: MakeIt deprecated?
+    //public class SlTpCondictionHolder<T>
+    //{
+    //    //REQ: Adattare l oggetto a restituire valori multipli
+    //    //TODO: MakeIt deprecated?
 
-        public Func<T, string, double> DefineSl { get; set; }
-        public Func<T, string, double> DefineTp { get; set; }
+    //    public Func<T, string, double> DefineSl { get; set; }
+    //    public Func<T, string, double> DefineTp { get; set; }
 
-        public ISlTpStrategy<T> Strategy { get; set; }
+    //    public ISlTpStrategy<T> Strategy { get; set; }
 
-        public Symbol Symbol { get; }
+    //    public Symbol Symbol { get; }
 
-        public SlTpCondictionHolder(Symbol symbol)
-        {
-            this.Symbol = symbol;
-        }
+    //    public SlTpCondictionHolder(Symbol symbol)
+    //    {
+    //        this.Symbol = symbol;
+    //    }
 
-        public void UseStrategyMode()
-        {
-            if (Strategy != null)
-            {
-                DefineSl = (q, id) => Strategy.CalculateSl(q, id);
-                DefineTp = (q, id) => Strategy.CalculateTp(q, id);
-            }
-        }
-    }
+    //    public void UseStrategyMode()
+    //    {
+    //        if (Strategy != null)
+    //        {
+    //            DefineSl = (q, id) => Strategy.CalculateSl(q, id);
+    //            DefineTp = (q, id) => Strategy.CalculateTp(q, id);
+    //        }
+    //    }
+    //}
 }

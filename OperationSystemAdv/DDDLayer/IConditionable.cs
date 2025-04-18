@@ -15,12 +15,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public Account Account { get; }
         public int LongExpo { get; }
         public int ShortExpo { get; }
-        public int LongPositionCount { get; }
-        public int ShortPositionCount { get; }
         string ConditionName { get; }
 
         public void Update(object obj);
-        public void Trade(Side side, double price);
         public void GetMetrics();
         public void Close();
     }

@@ -14,14 +14,20 @@ namespace DivergentStrV0_1.OperationSystemAdv
             _tpPercent = tpPercent;
         }
 
-        public double CalculateSl(double marketData, string itemId)
+        public double SlMarketData { get; set; }
+        public double TpMarketData { get; set; }
+
+
+        public List<double> CalculateSl(double marketData)
         {
-            return marketData * (1.0 - _slPercent);
+            List<double> result = new List<double> {marketData * (1.0 - _slPercent)};
+            return result;
         }
 
-        public double CalculateTp(double marketData, string itemId)
+        public List<double> CalculateTp(double marketData)
         {
-            return marketData * (1.0 + _tpPercent);
+            List<double> result =  new List<double>{marketData * (1.0 + _tpPercent)};
+            return result;
         }
 
         //TODO : Missing Implementation

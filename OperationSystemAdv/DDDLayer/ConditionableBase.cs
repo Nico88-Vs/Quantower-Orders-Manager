@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using TradingPlatform.BusinessLayer;
 using TradingPlatform.BusinessLayer.Integration;
 
@@ -12,7 +15,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
     public abstract class ConditionableBase<T> : IConditionable
     {
-        protected readonly TpSlManager<T> _manager;
+        protected readonly TpSlManager _manager = new TpSlManager();
         protected readonly List<OrderType> _allowedOrdersType;
 
         public Account Account { get; protected set; }
@@ -31,7 +34,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.Symbol = symbol;
             this.Strategy = strategy;
             this.Dispatcher = dispatcher != null ? dispatcher : new DomainEventDispatcher();
-            this._manager = this.BuildManager();
             this.RegisterHandlers();
             this._allowedOrdersType = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).ToList();
         }
@@ -41,7 +43,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.Description = description;
             this.Symbol = symbol;
             this.Dispatcher = dispatcher != null ? dispatcher : new DomainEventDispatcher();
-            this._manager = this.BuildManager();
             this.RegisterHandlers();
             this._allowedOrdersType = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).ToList();
         }
@@ -52,7 +53,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             //Dispatcher.Register(new TradingOperations(this));
         }
 
-        public virtual void Trade(Side side, double price)
+        public virtual void Trade(Side side, double price, T slMarketData, T tpMarketData)
         {
             var comment = GenerateComment();
 
@@ -70,29 +71,36 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 Comment = comment
             };
 
-            _manager.PlaceEntryOrder(ord_Request, comment, this);
+            var sl = Strategy.CalculateSl(slMarketData);
+            var slReqests = this.HandleExitReq(sl, ord_Request);
+
+            var tp = Strategy.CalculateTp(tpMarketData);
+            var tpReqests = this.HandleExitReq(tp, ord_Request);
+
+            _manager.PlaceEntryOrder(ord_Request, comment, slReqests, tpReqests, this);
         }
 
-        public virtual void Trade(Side side, double price, OrderType orderType)
-        {
-            var comment = GenerateComment();
+        //TODO: Handle OrderType
+        //public virtual void CustomTrade(Side side, double price, OrderType orderType)
+        //{
+        //    var comment = GenerateComment();
 
-            //TODO: Finire l implementazione di PlaceOrderRequestParameters
-            //HACK: Rindondanza di comment
-            var ord_Request = new PlaceOrderRequestParameters
-            {
-                Account = this.Account,
-                Symbol = this.Symbol,
-                Side = side,
-                Quantity = this.RoundQuantity(Quantity),
-                Price = price,
-                TriggerPrice = price,
-                OrderTypeId = orderType.Id,
-                Comment = comment
-            };
+        //    //TODO: Finire l implementazione di PlaceOrderRequestParameters
+        //    //HACK: Rindondanza di comment
+        //    var ord_Request = new PlaceOrderRequestParameters
+        //    {
+        //        Account = this.Account,
+        //        Symbol = this.Symbol,
+        //        Side = side,
+        //        Quantity = this.RoundQuantity(Quantity),
+        //        Price = price,
+        //        TriggerPrice = price,
+        //        OrderTypeId = orderType.Id,
+        //        Comment = comment
+        //    };
 
-            _manager.PlaceEntryOrder(ord_Request, comment, this);
-        }
+        //    _manager.PlaceEntryOrder(ord_Request, comment, this);
+        //}
 
         protected string GenerateComment()
         {
@@ -103,16 +111,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
         // abstract:
         public abstract void Update(object obj);
         public abstract double SetQuantity();
-        protected virtual TpSlManager<T> BuildManager()
-        {
-            var holder = new SlTpCondictionHolder<T>(this.Symbol)
-            {
-                Strategy = this.Strategy
-            };
-            holder.UseStrategyMode();
-
-            return new TpSlManager<T>(holder);
-        }
 
         protected virtual double RoundQuantity(double quantity)
         {
@@ -122,17 +120,51 @@ namespace DivergentStrV0_1.OperationSystemAdv
             return Math.Min(req, Symbol.MaxLot);
         }
 
+        protected virtual List<PlaceOrderRequestParameters> HandleExitReq(List<double> prices, PlaceOrderRequestParameters origin)
+        {
+            List<PlaceOrderRequestParameters> collection = new List<PlaceOrderRequestParameters>();
+            try
+            {
+                foreach (var item in prices)
+                {
+                    PlaceOrderRequestParameters exitReq = new PlaceOrderRequestParameters
+                    {
+                        Account = origin.Account,
+                        Symbol = origin.Symbol,
+                        Side = origin.Side == Side.Buy ? Side.Sell : Side.Buy,
+                        //TODO:handle unmatching quantity
+                        Quantity = this.RoundQuantity(origin.Quantity/prices.Count),
+                        Price = item,
+                        TriggerPrice = item,
+                        OrderTypeId = Symbol.GetAlowedOrderTypes(OrderTypeUsage.Order).FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Market).Id,
+                        AdditionalParameters = new List<SettingItem>
+                        {
+                            new SettingItemBoolean(OrderType.REDUCE_ONLY, true)
+                        }
+                    };
+
+                    collection.Add(exitReq);
+                }
+                return collection;
+
+            }
+            catch (Exception ex)
+            {
+                //TODO:Logs
+                return collection;
+
+            }
+        }
+
         public abstract void GetMetrics();
         public abstract void Close();
 
-        // metriche legate al manager
+        //TODO: metriche legate al manager
         public virtual double NetProfit => _manager.NetProfit;
-        public virtual double LongCount => _manager.Items.Count(x => x.Side == Side.Buy);
-        public virtual double ShortCount => _manager.Items.Count(x => x.Side == Side.Sell);
+        public virtual double LongCount => _manager.N_Long;
+        public virtual double ShortCount => _manager.N_Short;
         public virtual int LongExpo => _manager.Items.Count(x => x.Side == Side.Buy && x.Status != PositionManagerStatus.Closed);
         public virtual int ShortExpo => _manager.Items.Count(x => x.Side == Side.Sell && x.Status != PositionManagerStatus.Closed);
-        public virtual int LongPositionCount => _manager.Items.Select(x => x.RelatedPosition).Distinct().Count(x => x?.Side == Side.Buy);
-        public virtual int ShortPositionCount => _manager.Items.Select(x => x.RelatedPosition).Distinct().Count(x => x?.Side == Side.Sell);
     }
 
 }

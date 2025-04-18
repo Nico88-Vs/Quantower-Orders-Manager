@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
+using System.Xml.Linq;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv
@@ -12,11 +15,11 @@ namespace DivergentStrV0_1.OperationSystemAdv
         TakeProfit
     }
 
-    public class TpSlManager<T>
+    public class TpSlManager
     {
         #region Properties
-        private SlTpCondictionHolder<T> _delegates;
-        private TpSlComputator<T> _computator;
+        //private SlTpCondictionHolder<T> _delegates;
+        //private TpSlComputator<T> _computator;
 
         public List<SlTpItems> Items { get; private set; }
         public List<SlTpItems> ClosedItems { get; private set; }
@@ -43,21 +46,18 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         #endregion
 
-        public TpSlManager(SlTpCondictionHolder<T> holder)
+        public TpSlManager()
         {
             Items = new List<SlTpItems>();
             ClosedItems = new List<SlTpItems>();
             
-            _delegates = holder;
-            _computator = new TpSlComputator<T>(holder);
-
             Core.Instance.OrderAdded += this.Instance_OrderAdded;
             Core.Instance.OrdersHistoryAdded += this.Instance_OrdersHistoryAdded;
             Core.Instance.TradeAdded += this.Instance_TradeAdded;
         }
 
         #region QTEvents
-        //HACK: Passed Trade to Items
+        //HACK: Passed CustomTrade to Items
         private void Instance_TradeAdded(Trade trade)
         {
             var comment = this.GetSplittedComment(trade.Comment);
@@ -129,30 +129,50 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 // TODO: Dispatch
             }
         }
-        public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, IConditionable sender = null)
+        public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, IConditionable sender = null)
         {
             req.Comment = $"{comment}.{OrderTypeSubcomment.Entry.ToString()}";
 
             var reqest = Core.Instance.PlaceOrder(req);
+            //TODo:Logs
 
-            if (reqest.Status == TradingOperationResultStatus.Success)
+            while (reqest.Status == TradingOperationResultStatus.Success)
             {
                 var item = new SlTpItems(comment);
                 Items.Add(item);
+
+                foreach (var slOrder in sl)
+                {
+                    slOrder.Comment = $"{comment}.{OrderTypeSubcomment.StopLoss.ToString()}";
+                    reqest = Core.Instance.PlaceOrder(slOrder);
+                }
+
+                foreach (var tpOrder in tp)
+                {
+                    tpOrder.Comment = $"{comment}.{OrderTypeSubcomment.TakeProfit.ToString()}";
+                    reqest = Core.Instance.PlaceOrder(tpOrder);
+                }
 
                 //ISSUE: Dispatcher Target is null
                 //_dispatcher.Dispatch(new TradingOperations(reqest, sender));
             }
 
-            else
+            if (reqest.Status == TradingOperationResultStatus.Success)
             {
                 //ISSUE: Dispatcher Target is null
                 //_dispatcher.Dispatch(new TradingErrors(reqest, sender));
             }
+
+            else
+            {
+                //TODo:Logs
+                //TODo:Handle failure
+            }
         }
         #endregion
 
-        #region
+        #region Utility
+        
         private SlTpItems MatchItems(string OrderComment)
         {
             return Items.Where(x => x.Id == OrderComment).SingleOrDefault();
