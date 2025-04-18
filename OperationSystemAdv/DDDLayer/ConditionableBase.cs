@@ -45,6 +45,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.Dispatcher = dispatcher != null ? dispatcher : new DomainEventDispatcher();
             this.RegisterHandlers();
             this._allowedOrdersType = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).ToList();
+
         }
 
         protected virtual void RegisterHandlers()
