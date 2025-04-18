@@ -47,3 +47,16 @@ D:\source\ClonedRepo\OrdManagerNewVersion\Quantower-Orders-Manager\obj\Debug\ref
 A:\Quantower2\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.deps.json
 A:\Quantower2\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.dll
 A:\Quantower2\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.pdb
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.csproj.AssemblyReference.cache
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.AssemblyInfoInputs.cache
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.AssemblyInfo.cs
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.csproj.CoreCompileInputs.cache
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.sourcelink.json
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.dll
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\refint\DivergentStrV0_1.dll
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.pdb
+C:\Users\tagli\Desktop\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.deps.json
+C:\Users\tagli\Desktop\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.dll
+C:\Users\tagli\Desktop\Quantower\Settings\Scripts\Strategies\DivergentStrV0-1\DivergentStrV0_1.pdb
+C:\Users\tagli\Desktop\Repo\Quantower-Orders-Manager\obj\Debug\ref\DivergentStrV0_1.dll

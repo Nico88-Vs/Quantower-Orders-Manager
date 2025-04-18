@@ -1,15 +1,15 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {}
+    "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\CondictionalStrategyExample.csproj": {}
   },
   "projects": {
-    "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {
+    "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\CondictionalStrategyExample.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
-        "projectName": "DivergentStrV0_1",
-        "projectPath": "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
+        "projectUniqueName": "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\CondictionalStrategyExample.csproj",
+        "projectName": "CondictionalStrategyExample",
+        "projectPath": "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\CondictionalStrategyExample.csproj",
         "packagesPath": "C:\\Users\\tagli\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\tagli\\Desktop\\Repo\\Quantower-Orders-Manager\\obj\\",
         "projectStyle": "PackageReference",

@@ -9,18 +9,18 @@
     <AssemblyName>DivergentStrV0_1</AssemblyName>
     <RootNamespace>DivergentStrV0_1</RootNamespace>
     <StartAction>Program</StartAction>
-    <StartProgram>A:\Quantower2\Quantower\TradingPlatform\v1.142.12\Console.StarterNew.exe</StartProgram>
-    <StartArguments>--address 127.0.0.1 --port 54048</StartArguments>
+    <StartProgram>C:\Users\tagli\Desktop\Quantower\TradingPlatform\v1.142.16\Console.StarterNew.exe</StartProgram>
+    <StartArguments>--address 127.0.0.1 --port 49490</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>A:\Quantower2\Quantower\TradingPlatform\v1.142.12\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
+    <OutputPath>C:\Users\tagli\Desktop\Quantower\TradingPlatform\v1.142.16\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>A:\Quantower2\Quantower\TradingPlatform\v1.142.12\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
+    <OutputPath>C:\Users\tagli\Desktop\Quantower\TradingPlatform\v1.142.16\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="TradingPlatform.BusinessLayer">
-      <HintPath>A:\Quantower2\Quantower\TradingPlatform\v1.142.12\bin\TradingPlatform.BusinessLayer.dll</HintPath>
+      <HintPath>C:\Users\tagli\Desktop\Quantower\TradingPlatform\v1.142.16\bin\TradingPlatform.BusinessLayer.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

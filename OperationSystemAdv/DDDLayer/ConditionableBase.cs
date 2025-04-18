@@ -8,6 +8,8 @@ using TradingPlatform.BusinessLayer.Integration;
 
 namespace DivergentStrV0_1.OperationSystemAdv
 {
+    //REQ : Keep it Updated
+
     public abstract class ConditionableBase<T> : IConditionable
     {
         protected readonly TpSlManager<T> _manager;
@@ -55,6 +57,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             var comment = GenerateComment();
 
             //TODO: Finire l implementazione di PlaceOrderRequestParameters
+            //HACK: Rindondanza di comment
             var ord_Request = new PlaceOrderRequestParameters
             {
                 Account = this.Account,
@@ -75,6 +78,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             var comment = GenerateComment();
 
             //TODO: Finire l implementazione di PlaceOrderRequestParameters
+            //HACK: Rindondanza di comment
             var ord_Request = new PlaceOrderRequestParameters
             {
                 Account = this.Account,

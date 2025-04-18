@@ -9,6 +9,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
 {
     public class SlTpCondictionHolder<T>
     {
+        //REQ: Adattare l oggetto a restituire valori multipli
+        //TODO: MakeIt deprecated?
+
         public Func<T, string, double> DefineSl { get; set; }
         public Func<T, string, double> DefineTp { get; set; }
 
