@@ -4,13 +4,16 @@ namespace DivergentStrV0_1.Strategies
 {
     internal class StrategyTest : ConditionableBase<double>
     {
-        public StrategyTest(Account account, Symbol symbol, ISlTpStrategy<double> strategy, IDomainEventDispatcher dispatcher = null, string description = "")
-            : base(account, symbol, strategy, dispatcher, description)
+        //public void init(Account account, Symbol symbol, ISlTpStrategy<double> strategy, IDomainEventDispatcher dispatcher = null, string description = "")
+        //{
+        //}
+
+        public StrategyTest()
         {
+            
         }
 
         public override void Close() => throw new System.NotImplementedException();
-        public override void GetMetrics() => throw new System.NotImplementedException();
         public override double SetQuantity()
         {
             return Account.Balance;

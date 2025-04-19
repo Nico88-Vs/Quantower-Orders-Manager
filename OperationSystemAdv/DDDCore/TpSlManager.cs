@@ -31,29 +31,33 @@ namespace DivergentStrV0_1.OperationSystemAdv
         #region Properties
         //private SlTpCondictionHolder<T> _delegates;
         //private TpSlComputator<T> _computator;
+        //Deprecated
 
         public List<SlTpItems> Items { get; private set; }
         public List<SlTpItems> ClosedItems { get; private set; }
         private IDomainEventDispatcher _dispatcher;
-        private int _tradeCount = 0;
+        public int TradeCount { get; private set; } = 0;
         private Dictionary<string, List<string>> _itemsDictionary;
 
-        #region Metrics
-        //TODO: SHARE those metrics with the domain
-        public double NetProfit => Items.Sum(i => i.NetProfit)+ ClosedItems.Sum(i => i.NetProfit);
-        public double GrossProfit => Items.Sum(i => i.GrossProfit)+ ClosedItems.Sum(i => i.GrossProfit);
-        public double PaiedFees => Items.Sum(i => i.Fees)+ ClosedItems.Sum(i => i.Fees);
-        public int N_Positive_Operations => ClosedItems.Count(i => i.GrossProfit > 0) + ClosedItems.Count(i => i.GrossProfit > 0);
-        public int N_Negative_Operations => ClosedItems.Count(i => i.GrossProfit <= 0) + ClosedItems.Count(i => i.GrossProfit <= 0);
-        public int N_Short => ClosedItems.Count(i => i.Side == Side.Sell) + ClosedItems.Count(i => i.Side == Side.Sell);
-        public int N_Long=> ClosedItems.Count(i => i.Side == Side.Buy) + ClosedItems.Count(i => i.Side == Side.Buy);
-        public int N_Positive_Longs => ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0) + ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0);
-        public int N_Positive_Short => ClosedItems.Count(i => i.Side == Side.Sell && i.GrossProfit > 0) + ClosedItems.Count(i => i.Side == Side.Sell && i.GrossProfit > 0);public int N_Positive_Long => ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0) + ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0);
-        public int N_Negative_Short => N_Short - N_Positive_Short;
-        public int N_Negative_Long => N_Negative_Operations - N_Negative_Short;
-        public int N_Operations => ClosedItems.Count() + ClosedItems.Count();
+        #region Metrics Deprecated
+        //Deprecated
 
-        public int TradeCount => _tradeCount;
+        //public double NetProfit => Items.Sum(i => i.NetProfit)+ ClosedItems.Sum(i => i.NetProfit);
+        //public double GrossProfit => Items.Sum(i => i.GrossProfit)+ ClosedItems.Sum(i => i.GrossProfit);
+        //public double PaiedFees => Items.Sum(i => i.Fees)+ ClosedItems.Sum(i => i.Fees);
+        //public int N_Positive_Operations => ClosedItems.Count(i => i.GrossProfit > 0) + Items.Count(i => i.GrossProfit > 0);
+        //public int N_Negative_Operations => ClosedItems.Count(i => i.GrossProfit <= 0) + Items.Count(i => i.GrossProfit <= 0);
+        //public int N_Short => ClosedItems.Count(i => i.Side == Side.Sell) + Items.Count(i => i.Side == Side.Sell);
+        //public int N_Long=> ClosedItems.Count(i => i.Side == Side.Buy) + Items.Count(i => i.Side == Side.Buy);
+        //public int N_Positive_Longs => ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0) + Items.Count(i => i.Side == Side.Buy && i.GrossProfit > 0);
+        //public int N_Positive_Short => ClosedItems.Count(i => i.Side == Side.Sell && i.GrossProfit > 0) + Items.Count(i => i.Side == Side.Sell && i.GrossProfit > 0);
+        //public int N_Positive_Long => ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0) + Items.Count(i => i.Side == Side.Buy && i.GrossProfit > 0);
+        //public int N_Negative_Short => N_Short - N_Positive_Short;
+        //public int N_Negative_Long => N_Negative_Operations - N_Negative_Short;
+        //public int N_Operations => ClosedItems.Count() + ClosedItems.Count();
+        //public bool Exposed => Items.Any();
+        //public double ExposedAmount => Items.Sum(i => i.Quantity-i.ClosedQuantity);
+        //public int TradeCount => TradeCount;
         #endregion
 
         #endregion
@@ -93,7 +97,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
                 if (match != null)
                 {
-                    _tradeCount++;
+                    TradeCount++;
                     if (match.Status == PositionManagerStatus.Closed || match.Status == PositionManagerStatus.Aborted)
                     {
                         ClosedItems.Add(match);
@@ -180,7 +184,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 // TODO: Dispatch
             }
         }
-        public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, IConditionable sender = null)
+        public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
         {
             req.Comment = $"{comment}.{OrderTypeSubcomment.Entry.ToString()}";
 

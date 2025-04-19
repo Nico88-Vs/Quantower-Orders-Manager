@@ -50,7 +50,7 @@ namespace DivergentStrV0_1
         private Indicator Ichimoku;
         private Indicator Volume;
         private Indicator CumulativeAbsorbtion;
-        private IConditionable _conditionable;
+        private IConditionable _conditionable = new StrategyTest();
 
         private double procesPercent => this.hd != null &&
                               this.hd.VolumeAnalysisCalculationProgress != null ? this.hd.VolumeAnalysisCalculationProgress.ProgressPercent : 0;
@@ -194,9 +194,10 @@ namespace DivergentStrV0_1
         }
         private void Hd_NewHistoryItem(object sender, HistoryEventArgs e)
         {
-            if (this._conditionable == null)
+            if (!this._conditionable.Initialized)
             {
-                this._conditionable = new StrategyTest(this._Account, this._Symbol, new FixedSlTpStrategy(1.1,1.1));
+                this._conditionable.InjectStrategy(new FixedSlTpStrategy(1.1, 1.1));
+                this._conditionable.Init(this._Account, this._Symbol);
             }
             else
             {
@@ -270,6 +271,16 @@ namespace DivergentStrV0_1
         protected override void OnInitializeMetrics(Meter meter)
         {
             base.OnInitializeMetrics(meter);
+
+            try
+            {
+                this._conditionable.Metrics.ExportToMeter(meter);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
         #endregion
     }

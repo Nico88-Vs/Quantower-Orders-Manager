@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DivergentStrV0_1.OperationSystemAdv.DDDCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,16 +10,20 @@ namespace DivergentStrV0_1.OperationSystemAdv
 {
     public interface IConditionable
     {
-        public double NetProfit { get; }
-        public double LongCount { get; }
-        public double ShortCount { get; }
+        protected TpSlManager _manager { get; }
+        public PerformanceMetrics Metrics { get; }
+        public bool Initialized { get; }
         public Account Account { get; }
-        public int LongExpo { get; }
-        public int ShortExpo { get; }
-        string ConditionName { get; }
-
+        public Symbol Symbol { get; }
+        public double Quantity { get; }
+        public IDomainEventDispatcher Dispatcher { get; }
+        public string Description { get; }
+        void RegisterHandlers();
+        void Init(Account account, Symbol symbol, IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false);
+        void InjectStrategy(object strategy);
+        string StrategyName { get; }
         public void Update(object obj);
-        public void GetMetrics();
         public void Close();
+        public abstract double SetQuantity();
     }
 }
