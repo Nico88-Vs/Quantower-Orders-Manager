@@ -15,6 +15,17 @@ namespace DivergentStrV0_1.OperationSystemAdv
         TakeProfit
     }
 
+    //HACK: Aggiunta classe statica per evitare sottoscrizioni multiple
+    public static class EventSubscribed
+    {
+        public static bool IsSubscribed { get; private set; } = false;
+
+        public static void SetSubscribed()
+        {
+            IsSubscribed = true;
+        }
+    }
+
     public class TpSlManager
     {
         #region Properties
@@ -25,6 +36,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public List<SlTpItems> ClosedItems { get; private set; }
         private IDomainEventDispatcher _dispatcher;
         private int _tradeCount = 0;
+        private Dictionary<string, List<string>> _itemsDictionary;
 
         #region Metrics
         //TODO: SHARE those metrics with the domain
@@ -48,12 +60,21 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         public TpSlManager()
         {
+            Core.Instance.Loggers.Log("[TpSlManager] Costruttore invocato", LoggingLevel.System);
             Items = new List<SlTpItems>();
             ClosedItems = new List<SlTpItems>();
+            _itemsDictionary = new Dictionary<string, List<string>>();
+
+            //HINT: debugging sottoscrizioni multiple ..... soluzioni , static , singleton , static check , skipp null comment
+            if (!EventSubscribed.IsSubscribed)
+            {
+                Core.Instance.OrderAdded += this.Instance_OrderAdded;
+                Core.Instance.OrdersHistoryAdded += this.Instance_OrdersHistoryAdded;
+                Core.Instance.TradeAdded += this.Instance_TradeAdded;
+
+                EventSubscribed.SetSubscribed();
+            }
             
-            Core.Instance.OrderAdded += this.Instance_OrderAdded;
-            Core.Instance.OrdersHistoryAdded += this.Instance_OrdersHistoryAdded;
-            Core.Instance.TradeAdded += this.Instance_TradeAdded;
         }
 
         #region QTEvents
@@ -86,6 +107,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
         //HINT:Order History splitted entry exit
+        //TODO: Viene eseguito un ciclo d inserimento di troppo 
         private void Instance_OrdersHistoryAdded(OrderHistory obj)
         {
             var comment = this.GetSplittedComment(obj.Comment);
@@ -93,7 +115,16 @@ namespace DivergentStrV0_1.OperationSystemAdv
             if (comment != null && comment is KeyValuePair<string, OrderTypeSubcomment> parsedComment)
             {
                 var match = this.MatchItems(parsedComment.Key);
-                match.AttachHistoryOrder(obj);
+
+                try
+                {
+                    match.AttachHistoryOrder(obj);
+                }
+                catch (Exception)
+                {
+                    //TODO: Logs
+                    throw;
+                }
             }
             else
             {
@@ -103,26 +134,46 @@ namespace DivergentStrV0_1.OperationSystemAdv
         //REQ : Inser sl e tp in un ordine
         private void Instance_OrderAdded(Order obj)
         {
+            //HACK: Sembra che questo evento venga chiamato due volte quindi evito skippando quando comment e null
+            //HACK: Sarebbe meglio eseguire una verifica di esistenza dell ordine a prescindere dal commento
+            //TODO: Logs
+            if (string.IsNullOrEmpty(obj?.Comment))
+            {
+                var modifiedKey = _itemsDictionary.FirstOrDefault(kvp => kvp.Value.Contains(obj.Id)).Key;
+                Items.FirstOrDefault(x => x.Id == modifiedKey).UpdateOrders(obj);
+                return;
+            }
+
             var comment = this.GetSplittedComment(obj.Comment);
 
             if (comment != null && comment is KeyValuePair<string, OrderTypeSubcomment> parsedComment)
             {
                 var selected = this.MatchItems(parsedComment.Key);
+                _itemsDictionary[selected.Id].Add(obj.Id);
 
-                // NEXT: gestione incoerente in caso di ingressi multipli
-                // a meno che non si raggruppi tramite un id condiviso
-                switch (parsedComment.Value)
+                try
                 {
-                    case OrderTypeSubcomment.Entry:
-                        selected.AttachEntryOrder(obj);
-                        break;
-                    case OrderTypeSubcomment.StopLoss:
-                        selected.AttachSlOrder(obj);
-                        break;
-                    case OrderTypeSubcomment.TakeProfit:
-                        selected.AttachTpOrder(obj);
-                        break;
+                    // NEXT: gestione incoerente in caso di ingressi multipli
+                    // a meno che non si raggruppi tramite un id condiviso
+                    switch (parsedComment.Value)
+                    {
+                        case OrderTypeSubcomment.Entry:
+                            selected.AttachEntryOrder(obj);
+                            break;
+                        case OrderTypeSubcomment.StopLoss:
+                            selected.AttachSlOrder(obj);
+                            break;
+                        case OrderTypeSubcomment.TakeProfit:
+                            selected.AttachTpOrder(obj);
+                            break;
+                    }
                 }
+                catch (Exception)
+                {
+                    //TODO: Logs
+                    throw;
+                }
+               
             }
             else
             {
@@ -134,12 +185,14 @@ namespace DivergentStrV0_1.OperationSystemAdv
             req.Comment = $"{comment}.{OrderTypeSubcomment.Entry.ToString()}";
 
             var reqest = Core.Instance.PlaceOrder(req);
+            var done = false;
             //TODo:Logs
 
-            while (reqest.Status == TradingOperationResultStatus.Success)
+            while (reqest.Status == TradingOperationResultStatus.Success && !done)
             {
                 var item = new SlTpItems(comment);
                 Items.Add(item);
+                _itemsDictionary.Add(item.Id, new List<string>());
 
                 foreach (var slOrder in sl)
                 {
@@ -152,6 +205,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
                     tpOrder.Comment = $"{comment}.{OrderTypeSubcomment.TakeProfit.ToString()}";
                     reqest = Core.Instance.PlaceOrder(tpOrder);
                 }
+
+                done = true;
 
                 //ISSUE: Dispatcher Target is null
                 //_dispatcher.Dispatch(new TradingOperations(reqest, sender));
@@ -175,7 +230,12 @@ namespace DivergentStrV0_1.OperationSystemAdv
         
         private SlTpItems MatchItems(string OrderComment)
         {
-            return Items.Where(x => x.Id == OrderComment).SingleOrDefault();
+            //HACK: gestisco qui gli scenari  in cui non trovo l ordine nella lista di posizioni aperte
+            var result = Items.Where(x => x.Id == OrderComment).SingleOrDefault();
+            if (result == null)
+                result = ClosedItems.Where(x => x.Id == OrderComment).SingleOrDefault();
+
+            return result;
         }
         private KeyValuePair<string, OrderTypeSubcomment>? GetSplittedComment(string comment)
         {

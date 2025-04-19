@@ -228,15 +228,99 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
+        //HACK: cancello tutti gli ordini appena l operazione è chiusa potrebbe chiudersi troppo presto
         public void CloseAll()
         {
             Status = PositionManagerStatus.Closed;
 
             if(this.RemainQuantity != 0)
                 EntryOrder.Cancel(sendingSource:this.ToString());
+
+            foreach (var item in SlOrders)
+            {
+                try
+                {
+                    if (Core.Instance.Orders.Any(x => x.Id == item.Id))
+                    {
+                        var result = Core.Instance.Orders.FirstOrDefault(x => x.Id == item.Id).Cancel(sendingSource: this.ToString());
+                        if (result.Status == TradingOperationResultStatus.Success)
+                        {
+                            //TODO: Logs
+                        }
+                    }
+                        
+
+                }
+                catch (Exception)
+                {
+                    //TODO: Logs
+
+                    throw;
+                }
+            }
+
+            
+            foreach (var tpitem in TpOrders)
+            {
+                try
+                {
+                    if (Core.Instance.Orders.Any(x => x.Id == tpitem.Id))
+                    {
+                        var result = Core.Instance.Orders.FirstOrDefault(x => x.Id == tpitem.Id).Cancel(sendingSource: this.ToString());
+                        if (result.Status == TradingOperationResultStatus.Success)
+                        {
+                            //TODO: Logs
+                        }
+                    }
+                        
+
+                }
+                catch (Exception)
+                {
+                    //TODO: Logs
+
+                    throw;
+                }
+            }
             //TODO: log
             //TODO: handle the case of multiple entry orders
             //TODO: handle failures
+        }
+
+        //HACK: tento l aggiornamento degli ordini conscio di perdere il commento 
+        //nasce perchè vengono triggerati eventi multipli d addizione , penso all aggiornamento degli ordini
+        public void UpdateOrders(Order newOrder)
+        {
+            try
+            {
+                if (SlOrders.Any(x => x.Id == newOrder.Id))
+                {
+                    var or = SlOrders.FirstOrDefault(x => x.Id == newOrder.Id);
+                    SlOrders.Remove(or);
+                    SlOrders.Add(newOrder);
+
+                }
+                else if (TpOrders.Any(x => x.Id == newOrder.Id))
+                {
+                    var or = TpOrders.FirstOrDefault(x => x.Id == newOrder.Id);
+                    TpOrders.Remove(or);
+                    TpOrders.Add(newOrder);
+                }
+                else if (EntryOrder.Id == newOrder.Id)
+                {
+                    EntryOrder = newOrder;
+                }
+                else
+                {
+                    //TODO: Logs
+
+                }
+            }
+            catch (Exception)
+            {
+                //TODO: Logs
+                throw;
+            }
         }
 
         //REQ: hANDLE DISPATCHER

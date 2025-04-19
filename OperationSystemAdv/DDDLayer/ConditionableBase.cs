@@ -65,7 +65,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 Account = this.Account,
                 Symbol = this.Symbol,
                 Side = side,
-                Quantity = this.RoundQuantity(Quantity),
+                Quantity = this.RoundQuantity(Quantity/price),
                 Price = price,
                 TriggerPrice = price,
                 OrderTypeId = Symbol.GetAlowedOrderTypes(OrderTypeUsage.Order).FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Market).Id,
@@ -123,6 +123,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         protected virtual List<PlaceOrderRequestParameters> HandleExitReq(List<double> prices, PlaceOrderRequestParameters origin)
         {
+            //TODO:I prezzi d uscita sono sbagliati 
             List<PlaceOrderRequestParameters> collection = new List<PlaceOrderRequestParameters>();
             try
             {

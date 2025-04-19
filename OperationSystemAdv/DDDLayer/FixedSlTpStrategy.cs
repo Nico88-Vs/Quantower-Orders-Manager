@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv
@@ -17,16 +18,16 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public double SlMarketData { get; set; }
         public double TpMarketData { get; set; }
 
-
+        //TODO: works only for buy
         public List<double> CalculateSl(double marketData)
         {
-            List<double> result = new List<double> {marketData * (1.0 - _slPercent)};
+            List<double> result = new List<double> { Math.Abs(marketData * (1.0 - _slPercent))};
             return result;
         }
 
         public List<double> CalculateTp(double marketData)
         {
-            List<double> result =  new List<double>{marketData * (1.0 + _tpPercent)};
+            List<double> result =  new List<double>{marketData *  _tpPercent};
             return result;
         }
 
