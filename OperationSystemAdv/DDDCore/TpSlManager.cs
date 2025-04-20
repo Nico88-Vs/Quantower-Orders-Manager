@@ -16,6 +16,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
     }
 
     //HACK: Aggiunta classe statica per evitare sottoscrizioni multiple
+    //REQ : MAke it a singleton
+    //TODO: unused
     public static class EventSubscribed
     {
         public static bool IsSubscribed { get; private set; } = false;
@@ -25,6 +27,17 @@ namespace DivergentStrV0_1.OperationSystemAdv
             IsSubscribed = true;
         }
     }
+
+    public sealed class GlobalTpSlManager
+    {
+        private static readonly Lazy<TpSlManager> lazyInstance = new(() => new TpSlManager());
+
+        public static TpSlManager Instance => lazyInstance.Value;
+
+        // Prevent instantiation
+        private GlobalTpSlManager() { }
+    }
+
 
     public class TpSlManager
     {
@@ -39,27 +52,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public int TradeCount { get; private set; } = 0;
         private Dictionary<string, List<string>> _itemsDictionary;
 
-        #region Metrics Deprecated
-        //Deprecated
-
-        //public double NetProfit => Items.Sum(i => i.NetProfit)+ ClosedItems.Sum(i => i.NetProfit);
-        //public double GrossProfit => Items.Sum(i => i.GrossProfit)+ ClosedItems.Sum(i => i.GrossProfit);
-        //public double PaiedFees => Items.Sum(i => i.Fees)+ ClosedItems.Sum(i => i.Fees);
-        //public int N_Positive_Operations => ClosedItems.Count(i => i.GrossProfit > 0) + Items.Count(i => i.GrossProfit > 0);
-        //public int N_Negative_Operations => ClosedItems.Count(i => i.GrossProfit <= 0) + Items.Count(i => i.GrossProfit <= 0);
-        //public int N_Short => ClosedItems.Count(i => i.Side == Side.Sell) + Items.Count(i => i.Side == Side.Sell);
-        //public int N_Long=> ClosedItems.Count(i => i.Side == Side.Buy) + Items.Count(i => i.Side == Side.Buy);
-        //public int N_Positive_Longs => ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0) + Items.Count(i => i.Side == Side.Buy && i.GrossProfit > 0);
-        //public int N_Positive_Short => ClosedItems.Count(i => i.Side == Side.Sell && i.GrossProfit > 0) + Items.Count(i => i.Side == Side.Sell && i.GrossProfit > 0);
-        //public int N_Positive_Long => ClosedItems.Count(i => i.Side == Side.Buy && i.GrossProfit > 0) + Items.Count(i => i.Side == Side.Buy && i.GrossProfit > 0);
-        //public int N_Negative_Short => N_Short - N_Positive_Short;
-        //public int N_Negative_Long => N_Negative_Operations - N_Negative_Short;
-        //public int N_Operations => ClosedItems.Count() + ClosedItems.Count();
-        //public bool Exposed => Items.Any();
-        //public double ExposedAmount => Items.Sum(i => i.Quantity-i.ClosedQuantity);
-        //public int TradeCount => TradeCount;
-        #endregion
-
         #endregion
 
         public TpSlManager()
@@ -70,15 +62,10 @@ namespace DivergentStrV0_1.OperationSystemAdv
             _itemsDictionary = new Dictionary<string, List<string>>();
 
             //HINT: debugging sottoscrizioni multiple ..... soluzioni , static , singleton , static check , skipp null comment
-            if (!EventSubscribed.IsSubscribed)
-            {
-                Core.Instance.OrderAdded += this.Instance_OrderAdded;
-                Core.Instance.OrdersHistoryAdded += this.Instance_OrdersHistoryAdded;
-                Core.Instance.TradeAdded += this.Instance_TradeAdded;
+            Core.Instance.OrderAdded += this.Instance_OrderAdded;
+            Core.Instance.OrdersHistoryAdded += this.Instance_OrdersHistoryAdded;
+            Core.Instance.TradeAdded += this.Instance_TradeAdded;
 
-                EventSubscribed.SetSubscribed();
-            }
-            
         }
 
         #region QTEvents
@@ -152,6 +139,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             if (comment != null && comment is KeyValuePair<string, OrderTypeSubcomment> parsedComment)
             {
+                if (!_itemsDictionary.Keys.Contains(parsedComment.Key))
+                    this.CreateItem(parsedComment.Key);
+
                 var selected = this.MatchItems(parsedComment.Key);
                 _itemsDictionary[selected.Id].Add(obj.Id);
 
@@ -194,10 +184,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             while (reqest.Status == TradingOperationResultStatus.Success && !done)
             {
-                var item = new SlTpItems(comment);
-                Items.Add(item);
-                _itemsDictionary.Add(item.Id, new List<string>());
-
                 foreach (var slOrder in sl)
                 {
                     slOrder.Comment = $"{comment}.{OrderTypeSubcomment.StopLoss.ToString()}";
@@ -231,6 +217,12 @@ namespace DivergentStrV0_1.OperationSystemAdv
         #endregion
 
         #region Utility
+        private void CreateItem(string comment)
+        {
+            var item = new SlTpItems(comment);
+            Items.Add(item);
+            _itemsDictionary.Add(item.Id, new List<string>());
+        }
         
         private SlTpItems MatchItems(string OrderComment)
         {

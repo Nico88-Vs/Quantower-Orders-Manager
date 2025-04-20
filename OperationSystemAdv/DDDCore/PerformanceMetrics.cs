@@ -32,7 +32,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
     /// </summary>
     public class PerformanceMetrics
     {
-        private readonly TpSlManager manager;
+        private readonly TpSlManager manager = GlobalTpSlManager.Instance;
 
         /// <summary>
         /// Imposta se includere il calcolo delle metriche avanzate più pesanti (es. Drawdown, StdDev).
@@ -41,21 +41,19 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         public bool EnableHeavyMetrics { get; set; }
         public Account Account { get; private set; }
 
-        public PerformanceMetrics(TpSlManager manager, bool enableHavy, string strategyTag, Account account)
+        public void SetPerformanceMetrics(bool enableHavy, string strategyTag, Account account)
         {
             this.EnableHeavyMetrics = enableHavy;
             this.StrategyTag = strategyTag;
-            this.manager = manager ?? throw new ArgumentNullException(nameof(manager));
             this.Account = account;
         }
 
-        public PerformanceMetrics(TpSlManager manager)
+        public PerformanceMetrics()
         {
-            this.manager = manager ?? throw new ArgumentNullException(nameof(manager));
             this.EnableHeavyMetrics = false;
         }
 
-        public string StrategyTag { get; set; }
+        public string StrategyTag { get; private set; }
 
         [Metric("System", "Enable Heavy Metrics")]
         public bool EnableHeavyMetricsFlag => EnableHeavyMetrics;
@@ -117,6 +115,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             get
             {
                 var total = PositiveOperations + NegativeOperations;
+                Core.Instance.Loggers.Log("NetProfit called", LoggingLevel.Error);
                 if (total == 0) return 0;
                 double avgWin = manager.ClosedItems.Where(i => i.NetProfit > 0).DefaultIfEmpty().Average(i => i?.NetProfit ?? 0);
                 double avgLoss = manager.ClosedItems.Where(i => i.NetProfit <= 0).DefaultIfEmpty().Average(i => i?.NetProfit ?? 0);
@@ -215,6 +214,16 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
                     meter.CreateObservableGauge(metricName, () => ((bool?)prop.GetValue(this)) == true ? 1 : 0, description);
                 }
             }
+        }
+
+        public void SetAccount(Account account)
+        {
+            this.Account = account;
+        }
+
+        public void SetStrategyTag(string strategyTag)
+        {
+            this.StrategyTag = strategyTag;
         }
     }
 }

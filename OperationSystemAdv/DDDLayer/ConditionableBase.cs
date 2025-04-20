@@ -17,7 +17,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
     public abstract class ConditionableBase<T> : IConditionable
     {
         protected List<OrderType> _allowedOrdersType;
-        public virtual TpSlManager _manager { get; private set; }
+        public virtual TpSlManager _manager { get; private set; } = GlobalTpSlManager.Instance;
 
         public virtual PerformanceMetrics Metrics { get; private set; }
 
@@ -33,22 +33,24 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         protected ConditionableBase()
         {
-            this._manager = new TpSlManager();
-            this.Metrics = new PerformanceMetrics(_manager) { StrategyTag = this.StrategyName };
+            this.Metrics = new PerformanceMetrics();
+            this.Metrics.SetStrategyTag(this.StrategyName);
             this.Initialized = false;
+            this.Metrics.EnableHeavyMetrics = true;
         }
 
         public virtual void Init(Account account, Symbol symbol, IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false)
         {
             this.Account = account;
-            this.Metrics = new PerformanceMetrics(_manager, allowHeavyMetrics, this.StrategyName, this.Account);
+            this.Metrics.SetPerformanceMetrics(allowHeavyMetrics, this.StrategyName, this.Account);
             this.Description = description;
             this.Symbol = symbol;
             this.Dispatcher = dispatcher != null ? dispatcher : new DomainEventDispatcher();
-            this.Metrics = new PerformanceMetrics(_manager, allowHeavyMetrics, this.StrategyName, this.Account);
+            this.Metrics.SetAccount(this.Account);
             this.RegisterHandlers();
             this._allowedOrdersType = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).ToList();
             this.Initialized = true;
+            this.Quantity = this.SetQuantity();
         }
 
         public virtual void InjectStrategy(object strategy)
@@ -114,6 +116,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
         protected virtual double RoundQuantity(double quantity)
         {
             var req = Math.Floor(quantity / Symbol.MinLot) * Symbol.MinLot;
+
+            if (req < Symbol.MinLot)
+                req = 0;
 
             //TODO: Dispact Trading Info
             return Math.Min(req, Symbol.MaxLot);

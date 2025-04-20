@@ -197,7 +197,7 @@ namespace DivergentStrV0_1
             if (!this._conditionable.Initialized)
             {
                 this._conditionable.InjectStrategy(new FixedSlTpStrategy(1.1, 1.1));
-                this._conditionable.Init(this._Account, this._Symbol);
+                this._conditionable.Init(this._Account, this._Symbol,allowHeavyMetrics:true);
             }
             else
             {
@@ -281,6 +281,9 @@ namespace DivergentStrV0_1
 
                 throw;
             }
+
+            //HACK:remove this debug val 
+            meter.CreateObservableGauge("abb", () => this._Account.Balance, "description");
         }
         #endregion
     }

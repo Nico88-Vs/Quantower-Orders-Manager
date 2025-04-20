@@ -8,7 +8,7 @@ namespace DivergentStrV0_1.Strategies
         //{
         //}
 
-        public StrategyTest()
+        public StrategyTest(): base()
         {
             
         }
