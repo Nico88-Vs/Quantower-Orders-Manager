@@ -52,7 +52,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.Initialized = true;
             this.Quantity = this.SetQuantity();
         }
-
         public virtual void InjectStrategy(object strategy)
         {
             try
@@ -67,6 +66,15 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
+
+
+        #region DEPRECATED [Da rimuovere nella prossima versione]
+        /*
+         * ⚠️ Questo blocco è deprecato
+
+         * TODO: sostituire DEPRECATED o rimuovere
+         */
+        #endregion
 
         public virtual void RegisterHandlers()
         {
@@ -92,11 +100,18 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 Comment = comment
             };
 
+            var limit = _allowedOrdersType.FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Limit);
+            var stop = _allowedOrdersType.FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Stop);
+            if (limit == null)
+            {
+                //HACK:Handle this scenario , rapid implementation only , missing order  type handeling and trigger price managemant
+            }
+
             var sl = Strategy.CalculateSl(slMarketData);
-            var slReqests = this.HandleExitReq(sl, ord_Request);
+            var slReqests = this.HandleExitReq(sl, ord_Request, stop);
 
             var tp = Strategy.CalculateTp(tpMarketData);
-            var tpReqests = this.HandleExitReq(tp, ord_Request);
+            var tpReqests = this.HandleExitReq(tp, ord_Request, limit);
 
             _manager.PlaceEntryOrder(ord_Request, comment, slReqests, tpReqests, this);
         }
@@ -112,7 +127,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
         // abstract:
         public abstract void Update(object obj);
         public abstract double SetQuantity();
-
         protected virtual double RoundQuantity(double quantity)
         {
             var req = Math.Floor(quantity / Symbol.MinLot) * Symbol.MinLot;
@@ -124,7 +138,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             return Math.Min(req, Symbol.MaxLot);
         }
 
-        protected virtual List<PlaceOrderRequestParameters> HandleExitReq(List<double> prices, PlaceOrderRequestParameters origin)
+        protected virtual List<PlaceOrderRequestParameters> HandleExitReq(List<double> prices, PlaceOrderRequestParameters origin, OrderType orType)
         {
             //TODO:I prezzi d uscita sono sbagliati 
             List<PlaceOrderRequestParameters> collection = new List<PlaceOrderRequestParameters>();
@@ -141,7 +155,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                         Quantity = this.RoundQuantity(origin.Quantity/prices.Count),
                         Price = item,
                         TriggerPrice = item,
-                        OrderTypeId = Symbol.GetAlowedOrderTypes(OrderTypeUsage.Order).FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Market).Id,
+                        OrderTypeId = orType.Id,
                         AdditionalParameters = new List<SettingItem>
                         {
                             new SettingItemBoolean(OrderType.REDUCE_ONLY, true)
@@ -162,6 +176,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         }
 
         public abstract void Close();
+
 
         #region deprecated 
         //public abstract void GetMetrics();

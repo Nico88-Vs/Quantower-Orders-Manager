@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using DivergentStrV0_1.OperationSystemAdv;
@@ -51,6 +52,8 @@ namespace DivergentStrV0_1
         private Indicator Volume;
         private Indicator CumulativeAbsorbtion;
         private IConditionable _conditionable = new StrategyTest();
+
+        private bool Debug = false;
 
         private double procesPercent => this.hd != null &&
                               this.hd.VolumeAnalysisCalculationProgress != null ? this.hd.VolumeAnalysisCalculationProgress.ProgressPercent : 0;
@@ -196,12 +199,16 @@ namespace DivergentStrV0_1
         {
             if (!this._conditionable.Initialized)
             {
-                this._conditionable.InjectStrategy(new FixedSlTpStrategy(1.1, 1.1));
+                this._conditionable.InjectStrategy(new FixedSlTpStrategy(0.95, 1.05));
                 this._conditionable.Init(this._Account, this._Symbol,allowHeavyMetrics:true);
             }
             else
             {
                 var trade = this.hd[1][PriceType.Open] < this.hd[1][PriceType.Close] ? true : false;
+
+                if (this._conditionable.Metrics.Exposed)
+                    trade = false;
+
                 this._conditionable.Update(new TradeData(trade, this.hd[0][PriceType.Open]));
             }
         }

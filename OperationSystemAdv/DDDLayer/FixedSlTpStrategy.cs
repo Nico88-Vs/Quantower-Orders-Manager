@@ -21,7 +21,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         //TODO: works only for buy
         public List<double> CalculateSl(double marketData)
         {
-            List<double> result = new List<double> { Math.Abs(marketData * (1.0 - _slPercent))};
+            List<double> result = new List<double> { marketData * _slPercent};
             return result;
         }
 

@@ -79,6 +79,7 @@ namespace DivergentStrV0_1.Utils
 
         }
 
+
         public static Absorbed? ComputeAbsorbtion(List<LineSeries> absorbtion_lineseries, ref int absorbedCount)
         {
             Absorbed? resoult = null;

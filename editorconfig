@@ -1,0 +1,24 @@
+
+# .editorconfig (posizionalo nella root della tua soluzione)
+
+root = true
+
+[*.cs]
+dotnet_diagnostic.IDE0075.severity = none
+
+# ✅ Abilita categorie personalizzate per la Task List di Visual Studio
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+
+# Puoi usare questi tag nei commenti:
+# TODO: qualcosa da fare
+# FIX: errore da correggere
+# HACK: soluzione temporanea
+# REFACTOR: codice da migliorare
+# REQ: Funzionalita richieste
+# PERF: ottimizzazione possibile
+# NOTE: informazione importante
+# TEST: test da implementare
+# 📌MARK: punto strategico
+# 📦TPBLOCK: blocco take profit
+
+# Visual Studio li mostrerà nella Task List → View > Task List > Comments

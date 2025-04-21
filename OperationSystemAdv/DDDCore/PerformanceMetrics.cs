@@ -6,9 +6,6 @@ using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 {
-    /// <summary>
-    /// Attributo per classificare e personalizzare le metriche esportate.
-    /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
     public class MetricAttribute : Attribute
     {
@@ -24,20 +21,15 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         }
     }
 
-    /// <summary>
-    /// Classe che calcola e fornisce le metriche di performance a partire da un manager non tipizzato.
-    /// I valori sono calcolati dinamicamente accedendo a Items e ClosedItems.
-    //TODO: SHARE those metrics with the domain
-    /// 
-    /// </summary>
     public class PerformanceMetrics
     {
         private readonly TpSlManager manager = GlobalTpSlManager.Instance;
 
-        /// <summary>
-        /// Imposta se includere il calcolo delle metriche avanzate più pesanti (es. Drawdown, StdDev).
-        /// TODO: Ottimizzare in futuro con calcolo asincrono o caching.
-        /// </summary>
+        #region 📘 REQ [NEXT]
+        // TODO: Ottimizzare in futuro con calcolo asincrono o caching.
+        //TODO: SHARE those metrics with the domain
+        #endregion
+
         public bool EnableHeavyMetrics { get; set; }
         public Account Account { get; private set; }
 
@@ -53,6 +45,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             this.EnableHeavyMetrics = false;
         }
 
+        #region Properties
         public string StrategyTag { get; private set; }
 
         [Metric("System", "Enable Heavy Metrics")]
@@ -167,8 +160,9 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         [Metric("Exposure", "Avg Exposure", "units")]
         public double AvgExposurePerTrade => manager.Items.Any() ? manager.Items.Average(i => i.Quantity - i.ClosedQuantity) : 0;
+        #endregion
 
-
+        #region Utility
         private int GetMaxConsecutive(Func<SlTpItems, bool> condition)
         {
             int max = 0, current = 0;
@@ -225,5 +219,6 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         {
             this.StrategyTag = strategyTag;
         }
+        #endregion
     }
 }

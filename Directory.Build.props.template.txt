@@ -1,0 +1,28 @@
+╔══════════════════════════════════════════════════════════════╗
+║       Directory.Build.props (CONFIGURAZIONE LOCALE)         ║
+╠══════════════════════════════════════════════════════════════╣
+║ Da usare su ogni macchina per indicare i percorsi locali     ║
+║ della propria installazione di Quantower. NON va committato.║
+╚══════════════════════════════════════════════════════════════╝
+
+⏺ ESEMPIO DI CONTENUTO (DA COPIARE IN Directory.Build.props):
+
+<Project>
+  <PropertyGroup>
+    <!-- Percorso completo alla directory principale di Quantower -->
+    <QuantowerPath>C:\Quantower\TradingPlatform\v1.142.12</QuantowerPath>
+
+    <!-- Percorso di output della strategia (relativo a QuantowerPath) -->
+    <QuantowerStrategyPath>$(QuantowerPath)\..\..\Settings\Scripts\Strategies\DivergentStrV0-1</QuantowerStrategyPath>
+
+    <!-- Percorso alla DLL TradingPlatform.BusinessLayer -->
+    <QuantowerDllPath>$(QuantowerPath)\bin</QuantowerDllPath>
+
+    <!-- Percorso al programma di avvio -->
+    <StartProgramPath>$(QuantowerPath)\Console.StarterNew.exe</StartProgramPath>
+  </PropertyGroup>
+</Project>
+
+✅ Dopo averlo creato, salvalo come `Directory.Build.props` nella root del progetto.
+
+❌ NON VA VERSIONATO SU GIT.

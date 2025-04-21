@@ -11,6 +11,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         // Estensione opzionale per logiche avanzate
         IEnumerable<IDomainEvent> GenerateExitEvents(T marketData, string itemId);
+
+        //TODO: [Bookmark] Implementare la logica per generare eventi di uscita
     }
 
 }

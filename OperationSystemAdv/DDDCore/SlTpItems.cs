@@ -6,11 +6,6 @@ using TradingPlatform.BusinessLayer.Integration;
 
 namespace DivergentStrV0_1.OperationSystemAdv
 {
-    //REQ : Update Status
-    //REQ : Retrive Metrics
-    //REQ : Update Orders in case of orders modification
-    //TODO : Aggiungere una gestione di ingressi multipli
-    //TODO : Aggiungere una metodo di suddivisione delle Hystory , uscita entrata tp sl
     public enum PositionManagerStatus
     {
         Created,
@@ -22,8 +17,19 @@ namespace DivergentStrV0_1.OperationSystemAdv
         Closed,
         Aborted
     }
+
     public class SlTpItems
     {
+
+        #region 📘 REQ [SYSTEM]
+        //REQ : Update Orders in case of orders modification
+        //REQ : Implement Dispatcher ad DomainEvent
+        private List<IDomainEvent> _domainEvents = new();
+        public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+        //TODO : Aggiungere una gestione di ingressi multipli
+        #endregion
+
+        #region [Properties]
         public string Id { get; private set; }
         public PositionManagerStatus Status { get; private set; }
         public Order EntryOrder { get; private set; }
@@ -68,10 +74,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         }
         public double ClosedQuantity { get; private set; } = 0.0;
         public double Quantity { get; private set; } = 0.0;
-
-
-        private List<IDomainEvent> _domainEvents = new();
-        public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+        #endregion
 
         public SlTpItems(string id)
         {
@@ -89,7 +92,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
             ExitTrades = new List<Trade>();
         }
 
-        //REQ: Update Status while adding new entry Orders
         //TODO: Make it Suitable for multiple entry orders
         public void AttachEntryOrder(Order order)
         {
@@ -175,6 +177,13 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
+
+        #region 🧯 DEPRECATED [NEXT]
+        /*
+         * ⚠️ Questo blocco è inutile
+         * TODO: sostituire o rimuovere
+         */
+
         public void AttachHistoryOrder(OrderHistory order)
         {
             if (order.Side == Side)
@@ -211,12 +220,21 @@ namespace DivergentStrV0_1.OperationSystemAdv
                         Fees += trade.Fee.Value;
                         ClosedQuantity += trade.Quantity;
 
-                        if (ClosedQuantity == FilledQuantity)
+
+                        #region 🧪 HACK [SYSTEM]
+                        // siccome alcuni arrotondamenti creano mismatch devo chiudere la posizione quando la differenza e minore di symb.minlot
+                        // devo anche forzare la quantita rimanente a 0
+                        #endregion
+                        bool closed = (FilledQuantity - ClosedQuantity) < trade.Symbol.MinLot;
+
+
+                        if (closed)
                         {
                             Status = PositionManagerStatus.Closed;
+                            this.ClosedQuantity = this.FilledQuantity;
                             this.CloseAll();
                         }
-                        else if (ClosedQuantity < FilledQuantity)
+                        else
                             Status = PositionManagerStatus.PartialyClosed;
                     }
                     catch (Exception)
@@ -227,6 +245,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                     break;
             }
         }
+        #endregion
 
         //HACK: cancello tutti gli ordini appena l operazione è chiusa potrebbe chiudersi troppo presto
         public void CloseAll()
@@ -234,7 +253,10 @@ namespace DivergentStrV0_1.OperationSystemAdv
             Status = PositionManagerStatus.Closed;
 
             if(this.RemainQuantity != 0)
-                EntryOrder.Cancel(sendingSource:this.ToString());
+            {
+                var result = EntryOrder.Cancel(sendingSource:this.ToString());
+
+            }
 
             foreach (var item in SlOrders)
             {

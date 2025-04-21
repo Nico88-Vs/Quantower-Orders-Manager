@@ -15,19 +15,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
         TakeProfit
     }
 
-    //HACK: Aggiunta classe statica per evitare sottoscrizioni multiple
-    //REQ : MAke it a singleton
-    //TODO: unused
-    public static class EventSubscribed
-    {
-        public static bool IsSubscribed { get; private set; } = false;
-
-        public static void SetSubscribed()
-        {
-            IsSubscribed = true;
-        }
-    }
-
     public sealed class GlobalTpSlManager
     {
         private static readonly Lazy<TpSlManager> lazyInstance = new(() => new TpSlManager());
@@ -41,17 +28,12 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
     public class TpSlManager
     {
-        #region Properties
-        //private SlTpCondictionHolder<T> _delegates;
-        //private TpSlComputator<T> _computator;
-        //Deprecated
-
+        #region Properties 
         public List<SlTpItems> Items { get; private set; }
         public List<SlTpItems> ClosedItems { get; private set; }
         private IDomainEventDispatcher _dispatcher;
         public int TradeCount { get; private set; } = 0;
         private Dictionary<string, List<string>> _itemsDictionary;
-
         #endregion
 
         public TpSlManager()
@@ -61,15 +43,34 @@ namespace DivergentStrV0_1.OperationSystemAdv
             ClosedItems = new List<SlTpItems>();
             _itemsDictionary = new Dictionary<string, List<string>>();
 
-            //HINT: debugging sottoscrizioni multiple ..... soluzioni , static , singleton , static check , skipp null comment
+            #region 📘 REQ [System]
+            //TODO: Unscribe: on close or somenthing
             Core.Instance.OrderAdded += this.Instance_OrderAdded;
             Core.Instance.OrdersHistoryAdded += this.Instance_OrdersHistoryAdded;
             Core.Instance.TradeAdded += this.Instance_TradeAdded;
+            #endregion
+
+
+            #region 🧪 HACK [Debug]
+            //TODO: debug remove: Sottoscrizione Temporanea ai fini di debugging
+            Core.Instance.PositionAdded +=this.Instance_PositionAdded;
+            Core.Instance.PositionRemoved +=this.Instance_PositionRemoved;
 
         }
 
+        //TODO: debug remove:
+        private void Instance_PositionRemoved(Position obj)
+        {
+            var x = obj;
+        }
+        private void Instance_PositionAdded(Position obj)
+        {
+            var x = obj;
+        }
+            #endregion
+
+
         #region QTEvents
-        //HACK: Passed CustomTrade to Items
         private void Instance_TradeAdded(Trade trade)
         {
             var comment = this.GetSplittedComment(trade.Comment);
@@ -80,7 +81,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 var match = this.MatchItems(parsedComment.Key);
 
                 match?.RegisterTrade(trade);
-                //TODO: VERIFY Direction
+                //TODO: [FUTURE] Verifica Secondaria Sulla Direzione
 
                 if (match != null)
                 {
@@ -97,8 +98,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //TODO: Logs
             }
         }
-        //HINT:Order History splitted entry exit
-        //TODO: Viene eseguito un ciclo d inserimento di troppo 
+
+
+        
         private void Instance_OrdersHistoryAdded(OrderHistory obj)
         {
             var comment = this.GetSplittedComment(obj.Comment);
@@ -122,12 +124,14 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //TODO: LOG
             }
         }
-        //REQ : Inser sl e tp in un ordine
+
+
+        #region 🐞 BUG [OrdersUpdate]
+        //BUG: VERIFICARE >>>> Viene eseguito un ciclo d inserimento di troppo 
+        //TODO: Sarebbe meglio eseguire una verifica di esistenza dell ordine a prescindere dal commento
+        //TODO: Logs
         private void Instance_OrderAdded(Order obj)
         {
-            //HACK: Sembra che questo evento venga chiamato due volte quindi evito skippando quando comment e null
-            //HACK: Sarebbe meglio eseguire una verifica di esistenza dell ordine a prescindere dal commento
-            //TODO: Logs
             if (string.IsNullOrEmpty(obj?.Comment))
             {
                 var modifiedKey = _itemsDictionary.FirstOrDefault(kvp => kvp.Value.Contains(obj.Id)).Key;
@@ -174,13 +178,18 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 // TODO: Dispatch
             }
         }
+        #endregion
+
+
+        #region 📘 REQ [NEXT]
+        // HAndle Dispatcher
         public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
         {
             req.Comment = $"{comment}.{OrderTypeSubcomment.Entry.ToString()}";
 
             var reqest = Core.Instance.PlaceOrder(req);
             var done = false;
-            //TODo:Logs
+            //TODO:Logs
 
             while (reqest.Status == TradingOperationResultStatus.Success && !done)
             {
@@ -210,10 +219,11 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             else
             {
-                //TODo:Logs
-                //TODo:Handle failure
+                //TODO:Logs
+                //TODO:Handle failure
             }
         }
+        #endregion
         #endregion
 
         #region Utility
@@ -223,10 +233,16 @@ namespace DivergentStrV0_1.OperationSystemAdv
             Items.Add(item);
             _itemsDictionary.Add(item.Id, new List<string>());
         }
-        
+
+
+
+        /// <summary>
+        /// Match Items Senza distinguere fra Items apertio e chiusi
+        /// </summary>
+        /// <param name="OrderComment"></param>
+        /// <returns></returns>
         private SlTpItems MatchItems(string OrderComment)
         {
-            //HACK: gestisco qui gli scenari  in cui non trovo l ordine nella lista di posizioni aperte
             var result = Items.Where(x => x.Id == OrderComment).SingleOrDefault();
             if (result == null)
                 result = ClosedItems.Where(x => x.Id == OrderComment).SingleOrDefault();
