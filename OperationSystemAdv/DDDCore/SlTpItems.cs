@@ -24,17 +24,17 @@ namespace DivergentStrV0_1.OperationSystemAdv
         #region 📘 REQ [SYSTEM]
         //REQ : Update Orders in case of orders modification
         //REQ : Implement Dispatcher ad DomainEvent
-        private List<IDomainEvent> _domainEvents = new();
-        public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
         //TODO : Aggiungere una gestione di ingressi multipli
         #endregion
 
         #region [Properties]
+        private List<IDomainEvent> _domainEvents = new();
+        public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
         public string Id { get; private set; }
         public PositionManagerStatus Status { get; private set; }
         public Order EntryOrder { get; private set; }
-        public List<OrderHistory> EntryOrderHistory { get; private set; }
-        public List<OrderHistory> ExitOrderHistory { get; private set; }
+        //public List<OrderHistory> EntryOrderHistory { get; private set; }
+        //public List<OrderHistory> ExitOrderHistory { get; private set; }
         public List<Trade> EntryTrades { get; private set; }
         public List<Trade> ExitTrades { get; private set; }
         public List<Order> SlOrders { get; private set; }
@@ -85,8 +85,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             Status = PositionManagerStatus.Created;
 
-            EntryOrderHistory = new List<OrderHistory>();
-            ExitOrderHistory = new List<OrderHistory>();
+            //TODO: Deprecated
+            //EntryOrderHistory = new List<OrderHistory>();
+            //ExitOrderHistory = new List<OrderHistory>();
             Status = PositionManagerStatus.Placed;
             EntryTrades = new List<Trade>();
             ExitTrades = new List<Trade>();
@@ -184,13 +185,15 @@ namespace DivergentStrV0_1.OperationSystemAdv
          * TODO: sostituire o rimuovere
          */
 
-        public void AttachHistoryOrder(OrderHistory order)
-        {
-            if (order.Side == Side)
-                EntryOrderHistory.Add(order);
-            else
-                ExitOrderHistory.Add(order);
-        }
+        //public void AttachHistoryOrder(OrderHistory order)
+        //{
+        //    if (order.Side == Side)
+        //        EntryOrderHistory.Add(order);
+        //    else
+        //        ExitOrderHistory.Add(order);
+        //}
+        #endregion
+
 
         public void RegisterTrade(Trade trade)
         {
@@ -245,7 +248,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
                     break;
             }
         }
-        #endregion
 
         //HACK: cancello tutti gli ordini appena l operazione è chiusa potrebbe chiudersi troppo presto
         public void CloseAll()

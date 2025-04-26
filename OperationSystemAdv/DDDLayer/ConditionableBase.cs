@@ -14,7 +14,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 {
     //REQ : Keep it Updated
 
-    public abstract class ConditionableBase<T> : IConditionable
+    public abstract class ConditionableBase<T> : IConditionable , IDisposable
     {
         protected List<OrderType> _allowedOrdersType;
         public virtual TpSlManager _manager { get; private set; } = GlobalTpSlManager.Instance;
@@ -30,6 +30,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public string StrategyName => this.GetType().Name;
         public string Description { get; private set; }
         public ISlTpStrategy<T> Strategy { get; private set; }
+        public HystoryDataProvider HistoryProvider { get; protected set; }
 
         protected ConditionableBase()
         {
@@ -39,18 +40,20 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.Metrics.EnableHeavyMetrics = true;
         }
 
-        public virtual void Init(Account account, Symbol symbol, IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false)
+        public virtual void Init(HistoryRequestParameters req,Account account, bool loadAsync , IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false)
         {
             this.Account = account;
             this.Metrics.SetPerformanceMetrics(allowHeavyMetrics, this.StrategyName, this.Account);
             this.Description = description;
-            this.Symbol = symbol;
+            this.Symbol = req.Symbol;
             this.Dispatcher = dispatcher != null ? dispatcher : new DomainEventDispatcher();
             this.Metrics.SetAccount(this.Account);
             this.RegisterHandlers();
             this._allowedOrdersType = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).ToList();
-            this.Initialized = true;
             this.Quantity = this.SetQuantity();
+            this.InitHistoryProvider(req, loadAsync);
+
+            this.Initialized = true;
         }
         public virtual void InjectStrategy(object strategy)
         {
@@ -124,8 +127,25 @@ namespace DivergentStrV0_1.OperationSystemAdv
             return $"{StrategyName}_{guid}";
         }
 
+        #region Utility
+        protected virtual int GetVolumeTimeout() => 10000;
+        protected virtual int GetRetryDelay() => 500;
+        protected virtual List<HistoryUpdAteType> GetUpdateTypes() =>
+            new() { HistoryUpdAteType.NewItem, HistoryUpdAteType.UpdateItem };
+
+        protected virtual VolumeAnalysisCalculationParameters BuildVolumeRequest()
+        {
+            var request = new VolumeAnalysisCalculationParameters()
+            {
+                CalculatePriceLevels = false,
+                DeltaCalculationType = this.Symbol.DeltaCalculationType,
+            };
+
+            return request;
+        }
         // abstract:
         public abstract void Update(object obj);
+        public virtual void OnVolumeDataReady() { }
         public abstract double SetQuantity();
         protected virtual double RoundQuantity(double quantity)
         {
@@ -136,6 +156,22 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             //TODO: Dispact Trading Info
             return Math.Min(req, Symbol.MaxLot);
+        }
+
+        protected virtual void InitHistoryProvider(HistoryRequestParameters historyRequest, bool enableAsyncVolume)
+        {
+
+            this.HistoryProvider = HystoryDataProviderFactory.Create(
+                request: historyRequest,
+                symbol: this.Symbol,
+                updateTypes: this.GetUpdateTypes(),
+                volumeRequest: this.BuildVolumeRequest(),
+                async: enableAsyncVolume,
+                onUpdate: this.Update,
+                onVolumeReady: this.OnVolumeDataReady,
+                timeoutMs: this.GetVolumeTimeout(),
+                retryDelayMs: this.GetRetryDelay()
+            );
         }
 
         protected virtual List<PlaceOrderRequestParameters> HandleExitReq(List<double> prices, PlaceOrderRequestParameters origin, OrderType orType)
@@ -175,7 +211,20 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
-        public abstract void Close();
+        public virtual void Dispose()
+        {
+            // TODO: Dispose all the resources dispatcher?
+            this.HistoryProvider?.Dispose();
+            this.Strategy = null;
+            this.Account = null;
+            this.Symbol = null;
+            this.Initialized = false;
+            this.Dispatcher = null;
+            this.Description = null;
+            this.Quantity = 0;
+            this._manager?.Dispose();
+        }
+        #endregion
 
 
         #region deprecated 

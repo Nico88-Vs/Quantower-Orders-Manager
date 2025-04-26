@@ -19,11 +19,11 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public IDomainEventDispatcher Dispatcher { get; }
         public string Description { get; }
         void RegisterHandlers();
-        void Init(Account account, Symbol symbol, IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false);
+        void Init(HistoryRequestParameters req, Account account, bool loadAsync, IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false);
         void InjectStrategy(object strategy);
         string StrategyName { get; }
         public void Update(object obj);
-        public void Close();
+        public void Dispose();
         public abstract double SetQuantity();
     }
 }

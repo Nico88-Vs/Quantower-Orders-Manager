@@ -1,22 +1,55 @@
 ﻿using DivergentStrV0_1.OperationSystemAdv;
+using DivergentStrV0_1.OperationSystemAdv.DDDCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using TradingPlatform.BusinessLayer;
 namespace DivergentStrV0_1.Strategies
 {
+    //Custom attributes for visual grouping in the settings
+    //==================================================================
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]
+    public class VisualGroupAttribute : Attribute
+    {
+        public string GroupName { get; }
+
+        public VisualGroupAttribute(string groupName)
+        {
+            GroupName = groupName;
+        }
+    }
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]
+    public class SeparatorGroupAttribute : Attribute
+    {
+        public string GroupName { get; }
+
+        public SeparatorGroupAttribute(string groupName)
+        {
+            GroupName = groupName;
+        }
+    }
+
     internal class StrategyTest : ConditionableBase<double>
     {
         //public void init(Account account, Symbol symbol, ISlTpStrategy<double> strategy, IDomainEventDispatcher dispatcher = null, string description = "")
         //{
         //}
+        private double _lastDelta;
 
         public StrategyTest(): base()
         {
             
         }
 
-        public override void Close() => throw new System.NotImplementedException();
+        public override void Dispose() => base.Dispose();
         public override double SetQuantity()
         {
             return Account.Balance;
+        }
+
+        protected override void InitHistoryProvider(HistoryRequestParameters historyRequest, bool enableAsyncVolume)
+        {
+            base.InitHistoryProvider(historyRequest, enableAsyncVolume);
         }
 
         public  void CustomTrade(Side side, double price) => this.Trade(side, price, price, price);
@@ -24,15 +57,37 @@ namespace DivergentStrV0_1.Strategies
 
         public override void Update(object obj)
         {
-            if (obj is TradeData tradeData)
+            if (this.Metrics.Exposed)
+                return;
+            try
+            {
+                // TODO: gestire meglio questi cast
+                HistoryEventArgs item = (HistoryEventArgs)obj;
+                HistoryItem data = (HistoryItem)item.HistoryItem;
+                double sign;
+                if (_lastDelta != 0 && (sign = Math.Sign(data.VolumeAnalysisData.Total.Delta)) != Math.Sign(_lastDelta))
+                {
+                    Side side = sign > 0 ? Side.Buy : Side.Sell;
+                    this.CustomTrade(side, data[PriceType.Close]);
+                }
+
+                this._lastDelta = data.VolumeAnalysisData.Total.Delta;
+                
+            }
+            catch (System.Exception)
             {
 
-                if (tradeData.Tarde)
-                {
-                    CustomTrade(Side.Buy, tradeData.Price);
-                }
+                throw;
             }
            
+        }
+
+        protected override List<HistoryUpdAteType> GetUpdateTypes()
+        {
+            return new List<HistoryUpdAteType>
+            {
+                HistoryUpdAteType.NewItem,
+            };
         }
     }
 

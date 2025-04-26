@@ -15,6 +15,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
         TakeProfit
     }
 
+    /// <summary>
+    /// Signleton class to manage the global instance of TpSlManager.
+    /// </summary>
     public sealed class GlobalTpSlManager
     {
         private static readonly Lazy<TpSlManager> lazyInstance = new(() => new TpSlManager());
@@ -26,49 +29,27 @@ namespace DivergentStrV0_1.OperationSystemAdv
     }
 
 
-    public class TpSlManager
+    public class TpSlManager : IDisposable
     {
         #region Properties 
         public List<SlTpItems> Items { get; private set; }
         public List<SlTpItems> ClosedItems { get; private set; }
-        private IDomainEventDispatcher _dispatcher;
         public int TradeCount { get; private set; } = 0;
+
+        private IDomainEventDispatcher _dispatcher;
         private Dictionary<string, List<string>> _itemsDictionary;
+        private readonly object _lockObj = new object();
         #endregion
 
         public TpSlManager()
         {
-            Core.Instance.Loggers.Log("[TpSlManager] Costruttore invocato", LoggingLevel.System);
             Items = new List<SlTpItems>();
             ClosedItems = new List<SlTpItems>();
             _itemsDictionary = new Dictionary<string, List<string>>();
 
-            #region 📘 REQ [System]
-            //TODO: Unscribe: on close or somenthing
             Core.Instance.OrderAdded += this.Instance_OrderAdded;
-            Core.Instance.OrdersHistoryAdded += this.Instance_OrdersHistoryAdded;
             Core.Instance.TradeAdded += this.Instance_TradeAdded;
-            #endregion
-
-
-            #region 🧪 HACK [Debug]
-            //TODO: debug remove: Sottoscrizione Temporanea ai fini di debugging
-            Core.Instance.PositionAdded +=this.Instance_PositionAdded;
-            Core.Instance.PositionRemoved +=this.Instance_PositionRemoved;
-
         }
-
-        //TODO: debug remove:
-        private void Instance_PositionRemoved(Position obj)
-        {
-            var x = obj;
-        }
-        private void Instance_PositionAdded(Position obj)
-        {
-            var x = obj;
-        }
-            #endregion
-
 
         #region QTEvents
         private void Instance_TradeAdded(Trade trade)
@@ -88,8 +69,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                     TradeCount++;
                     if (match.Status == PositionManagerStatus.Closed || match.Status == PositionManagerStatus.Aborted)
                     {
-                        ClosedItems.Add(match);
-                        Items.Remove(match);
+                        this.CloseItem(match);
                     }
                 }
             }
@@ -99,86 +79,76 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
-
-        
-        private void Instance_OrdersHistoryAdded(OrderHistory obj)
-        {
-            var comment = this.GetSplittedComment(obj.Comment);
-
-            if (comment != null && comment is KeyValuePair<string, OrderTypeSubcomment> parsedComment)
-            {
-                var match = this.MatchItems(parsedComment.Key);
-
-                try
-                {
-                    match.AttachHistoryOrder(obj);
-                }
-                catch (Exception)
-                {
-                    //TODO: Logs
-                    throw;
-                }
-            }
-            else
-            {
-                //TODO: LOG
-            }
-        }
-
-
-        #region 🐞 BUG [OrdersUpdate]
-        //BUG: VERIFICARE >>>> Viene eseguito un ciclo d inserimento di troppo 
         //TODO: Sarebbe meglio eseguire una verifica di esistenza dell ordine a prescindere dal commento
         //TODO: Logs
         private void Instance_OrderAdded(Order obj)
         {
-            if (string.IsNullOrEmpty(obj?.Comment))
+            if (obj.Status != OrderStatus.Opened || string.IsNullOrEmpty(obj?.Comment))
             {
                 var modifiedKey = _itemsDictionary.FirstOrDefault(kvp => kvp.Value.Contains(obj.Id)).Key;
-                Items.FirstOrDefault(x => x.Id == modifiedKey).UpdateOrders(obj);
-                return;
-            }
-
-            var comment = this.GetSplittedComment(obj.Comment);
-
-            if (comment != null && comment is KeyValuePair<string, OrderTypeSubcomment> parsedComment)
-            {
-                if (!_itemsDictionary.Keys.Contains(parsedComment.Key))
-                    this.CreateItem(parsedComment.Key);
-
-                var selected = this.MatchItems(parsedComment.Key);
-                _itemsDictionary[selected.Id].Add(obj.Id);
-
+                //TODO: A volte e nullo forse perche e stato spostato
                 try
                 {
-                    // NEXT: gestione incoerente in caso di ingressi multipli
-                    // a meno che non si raggruppi tramite un id condiviso
-                    switch (parsedComment.Value)
-                    {
-                        case OrderTypeSubcomment.Entry:
-                            selected.AttachEntryOrder(obj);
-                            break;
-                        case OrderTypeSubcomment.StopLoss:
-                            selected.AttachSlOrder(obj);
-                            break;
-                        case OrderTypeSubcomment.TakeProfit:
-                            selected.AttachTpOrder(obj);
-                            break;
-                    }
+                    var item = Items.FirstOrDefault(x => x.Id == modifiedKey);
+
+                    if (item == null)
+                        item = ClosedItems.FirstOrDefault(x => x.Id == modifiedKey);
+
+                    item.UpdateOrders(obj);
                 }
                 catch (Exception)
                 {
-                    //TODO: Logs
+                    //TODO: Logga
                     throw;
                 }
-               
+
             }
             else
             {
-                // TODO: Dispatch
+                var comment = this.GetSplittedComment(obj.Comment);
+
+                if (comment != null && comment is KeyValuePair<string, OrderTypeSubcomment> parsedComment)
+                {
+                    lock (_lockObj)
+                    {
+                        this.CreateItem(parsedComment.Key);
+
+                        var selected = this.MatchItems(parsedComment.Key);
+                        _itemsDictionary[selected.Id].Add(obj.Id);
+
+                        try
+                        {
+                            // NEXT: gestione incoerente in caso di ingressi multipli
+                            // a meno che non si raggruppi tramite un id condiviso
+                            switch (parsedComment.Value)
+                            {
+                                case OrderTypeSubcomment.Entry:
+                                    selected.AttachEntryOrder(obj);
+                                    break;
+                                case OrderTypeSubcomment.StopLoss:
+                                    selected.AttachSlOrder(obj);
+                                    break;
+                                case OrderTypeSubcomment.TakeProfit:
+                                    selected.AttachTpOrder(obj);
+                                    break;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            //TODO: Logs
+                            throw;
+                        }
+                    }
+                }
+                else
+                {
+                    // TODO: Dispatch
+                }
             }
         }
         #endregion
+
+        #region Utility
 
 
         #region 📘 REQ [NEXT]
@@ -224,20 +194,42 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
         #endregion
-        #endregion
 
-        #region Utility
-        private void CreateItem(string comment)
+        public void CloseItem(SlTpItems item)
         {
-            var item = new SlTpItems(comment);
-            Items.Add(item);
-            _itemsDictionary.Add(item.Id, new List<string>());
+            lock (_lockObj)
+            {
+                if (!ClosedItems.Any(x => x.Id == item.Id))
+                {
+                    ClosedItems.Add(item);
+                    Items.Remove(item);
+                    //TODO:Core.Instance.Loggers.Log($"✅ Item chiuso e spostato in ClosedItems: {item.Id}", LoggingLevel.Info);
+                }
+                else
+                {
+                    //TODO:Core.Instance.Loggers.Log($"⚠️ Tentativo di chiudere un item già chiuso: {item.Id}", LoggingLevel.Warning);
+                }
+            }
         }
 
+        private void CreateItem(string comment)
+        {
+            if (!_itemsDictionary.ContainsKey(comment))
+            {
+                var item = new SlTpItems(comment);
+                Items.Add(item);
+                _itemsDictionary.Add(item.Id, new List<string>());
 
+                //TODO: Core.Instance.Loggers.Log($"✅ Creato nuovo SlTpItems con ID: {comment}", LoggingLevel.Info);
+            }
+            else
+            {
+                //TODO:Core.Instance.Loggers.Log($"⚠️ Item con ID {comment} già esistente, non ricreato.", LoggingLevel.Warning);
+            }
+        }
 
         /// <summary>
-        /// Match Items Senza distinguere fra Items apertio e chiusi
+        /// Esegue una verifica di esistenza dell'oggetto su entrambe le liste
         /// </summary>
         /// <param name="OrderComment"></param>
         /// <returns></returns>
@@ -245,6 +237,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         {
             var result = Items.Where(x => x.Id == OrderComment).SingleOrDefault();
             if (result == null)
+                // Piu di un oggetto
                 result = ClosedItems.Where(x => x.Id == OrderComment).SingleOrDefault();
 
             return result;
@@ -279,6 +272,17 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 // TODO: LOGS
                 return null;
             }
+        }
+
+        public void Dispose()
+        {
+            //TODO: chiudere tutte le posizioni
+            Items = null;
+            ClosedItems = null;
+            _itemsDictionary = null;
+
+            Core.Instance.OrderAdded -= this.Instance_OrderAdded;
+            Core.Instance.TradeAdded -= this.Instance_TradeAdded;
         }
         #endregion
     }
