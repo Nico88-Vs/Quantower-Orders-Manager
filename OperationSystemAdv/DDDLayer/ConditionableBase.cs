@@ -25,12 +25,13 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public bool Initialized { get; private set; }
         public Symbol Symbol { get; private set; }
         //HACK: definito cosi la gestione delle quantita 
-        public double Quantity { get; private set; } 
-        public IDomainEventDispatcher Dispatcher { get; private set; }
+        public double Quantity { get; private set; }
         public string StrategyName => this.GetType().Name;
         public string Description { get; private set; }
         public ISlTpStrategy<T> Strategy { get; private set; }
         public HystoryDataProvider HistoryProvider { get; protected set; }
+
+        public List<string> RegistredGuid => new();
 
         protected ConditionableBase()
         {
@@ -40,13 +41,12 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.Metrics.EnableHeavyMetrics = true;
         }
 
-        public virtual void Init(HistoryRequestParameters req,Account account, bool loadAsync , IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false)
+        public virtual void Init(HistoryRequestParameters req,Account account, bool loadAsync, string description = "", bool allowHeavyMetrics = false)
         {
             this.Account = account;
             this.Metrics.SetPerformanceMetrics(allowHeavyMetrics, this.StrategyName, this.Account);
             this.Description = description;
             this.Symbol = req.Symbol;
-            this.Dispatcher = dispatcher != null ? dispatcher : new DomainEventDispatcher();
             this.Metrics.SetAccount(this.Account);
             this.RegisterHandlers();
             this._allowedOrdersType = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).ToList();
@@ -88,6 +88,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public virtual void Trade(Side side, double price, T slMarketData, T tpMarketData)
         {
             var comment = GenerateComment();
+            this.RegistredGuid.Add(comment);
 
             //TODO: Finire l implementazione di PlaceOrderRequestParameters
             //HACK: Rindondanza di comment
@@ -219,11 +220,54 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.Account = null;
             this.Symbol = null;
             this.Initialized = false;
-            this.Dispatcher = null;
             this.Description = null;
             this.Quantity = 0;
             this._manager?.Dispose();
         }
+
+        private List<SlTpItems> GetActiveGuid()
+        {
+            return _manager.Items.Where(item => RegistredGuid.Contains(item.Id)).ToList(); 
+        }
+
+        public void UpdateSlTp(Func<double, double> func, bool isSl)
+        {
+            if (!this.Initialized)
+            {
+                throw new InvalidOperationException("ConditionableBase is not initialized. Call Init() before updating SL/TP.");
+            }
+
+            if (this._manager == null)
+            {
+                throw new InvalidOperationException("TpSlManager is not initialized.");
+            }
+
+            if (this._manager.Items.Count == 0)
+            {
+                throw new InvalidOperationException("No active trades to update SL/TP.");
+            }
+
+            if (func == null)
+            {
+                throw new ArgumentNullException(nameof(func), "Update function cannot be null.");
+            }
+
+            if (isSl)
+            {
+                foreach (SlTpItems item in GetActiveGuid())
+                {
+                    _manager.UpdateSl(item, func);
+                }
+            }
+            else
+            {
+                foreach (SlTpItems item in GetActiveGuid())
+                {
+                    _manager.UpdateTp(item, func);
+                }
+            }
+        }
+
         #endregion
 
 

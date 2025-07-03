@@ -6,34 +6,8 @@ using System.Linq;
 using TradingPlatform.BusinessLayer;
 namespace DivergentStrV0_1.Strategies
 {
-    //Custom attributes for visual grouping in the settings
-    //==================================================================
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]
-    public class VisualGroupAttribute : Attribute
-    {
-        public string GroupName { get; }
-
-        public VisualGroupAttribute(string groupName)
-        {
-            GroupName = groupName;
-        }
-    }
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]
-    public class SeparatorGroupAttribute : Attribute
-    {
-        public string GroupName { get; }
-
-        public SeparatorGroupAttribute(string groupName)
-        {
-            GroupName = groupName;
-        }
-    }
-
     internal class StrategyTest : ConditionableBase<double>
     {
-        //public void init(Account account, Symbol symbol, ISlTpStrategy<double> strategy, IDomainEventDispatcher dispatcher = null, string description = "")
-        //{
-        //}
         private double _lastDelta;
 
         public StrategyTest(): base()
@@ -52,7 +26,7 @@ namespace DivergentStrV0_1.Strategies
             base.InitHistoryProvider(historyRequest, enableAsyncVolume);
         }
 
-        public  void CustomTrade(Side side, double price) => this.Trade(side, price, price, price);
+        public void CustomTrade(Side side, double price) => this.Trade(side, price, price, price);
       
 
         public override void Update(object obj)

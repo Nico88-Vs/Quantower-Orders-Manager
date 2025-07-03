@@ -98,7 +98,7 @@ namespace DivergentStrV0_1
         public int _HdRequireDais = 31;
 
 
-        public IchiManager IchiManager { get; set; }
+        
         private HistoricalData hd;
         private Indicator Ichimoku;
         private Indicator Volume;

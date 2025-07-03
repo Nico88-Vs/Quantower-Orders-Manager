@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj",
+      "projectUniqueName": "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
       "projectName": "DivergentStrV0_1",
-      "projectPath": "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\DivergentStrV0-1.csproj",
+      "projectPath": "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
       "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\user\\source\\ClonedRepo\\QTStrategies\\obj\\",
+      "outputPath": "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -29,16 +29,17 @@
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
-        "net8.0"
+        "net8"
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "C:\\Program Files\\dotnet\\library-packs": {},
+        "C:\\Users\\user\\Desktop\\CustomNugetPkg": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net8.0": {
-          "targetAlias": "net8.0",
+          "targetAlias": "net8",
           "projectReferences": {}
         }
       },
@@ -55,7 +56,7 @@
     },
     "frameworks": {
       "net8.0": {
-        "targetAlias": "net8.0",
+        "targetAlias": "net8",
         "imports": [
           "net461",
           "net462",

@@ -35,8 +35,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public List<SlTpItems> Items { get; private set; }
         public List<SlTpItems> ClosedItems { get; private set; }
         public int TradeCount { get; private set; } = 0;
-
-        private IDomainEventDispatcher _dispatcher;
         private Dictionary<string, List<string>> _itemsDictionary;
         private readonly object _lockObj = new object();
         #endregion
@@ -152,6 +150,30 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
 
         #region 📘 REQ [NEXT]
+
+        public void UpdateSl(SlTpItems item, Func<double, double> updateFunction)
+        {
+            item.UpdateSlOrders(updateFunction);
+        }
+
+        public void UpdateTp(SlTpItems item, Func<double, double> updateFunction)
+        {
+            item.UpdateTpOrders(updateFunction);
+        }
+
+        public void UpdateTp(string OrderComment, Func<double> updateFunction)
+        {
+            try
+            {
+                SlTpItems item = MatchItems(OrderComment);
+            }
+            catch (Exception ex)
+            {
+                //  TODO : Log
+                throw ex;
+            }
+        }
+
         // HAndle Dispatcher
         public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
         {
@@ -286,14 +308,5 @@ namespace DivergentStrV0_1.OperationSystemAdv
         }
         #endregion
     }
-    //HINT : A cosa serve?
-    public static class DomainEventDispatcherExtensions
-    {
-        public static void DispatchEventsFrom(this IDomainEventDispatcher dispatcher, SlTpItems item)
-        {
-            item.DispatchEvents(dispatcher);
-        }
-    }
-
-
+   
 }

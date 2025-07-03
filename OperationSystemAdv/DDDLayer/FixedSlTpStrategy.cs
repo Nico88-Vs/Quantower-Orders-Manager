@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata.Ecma335;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv
@@ -31,7 +32,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             return result;
         }
 
-        //TODO : Missing Implementation
-        public IEnumerable<IDomainEvent> GenerateExitEvents(double marketData, string itemId) => throw new System.NotImplementedException();
+        public double UpdateSl(double currentPrice) => currentPrice;
+        public double UpdateTp(double currentPrice) => currentPrice;
     }
 }

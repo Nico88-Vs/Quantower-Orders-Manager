@@ -16,14 +16,15 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public Account Account { get; }
         public Symbol Symbol { get; }
         public double Quantity { get; }
-        public IDomainEventDispatcher Dispatcher { get; }
         public string Description { get; }
         void RegisterHandlers();
-        void Init(HistoryRequestParameters req, Account account, bool loadAsync, IDomainEventDispatcher dispatcher = null, string description = "", bool allowHeavyMetrics = false);
+        void Init(HistoryRequestParameters req, Account account, bool loadAsync, string description = "", bool allowHeavyMetrics = false);
         void InjectStrategy(object strategy);
         string StrategyName { get; }
         public void Update(object obj);
+        public void UpdateSlTp(Func<double, double> func, bool isSl);
         public void Dispose();
         public abstract double SetQuantity();
+        public List<string> RegistredGuid { get;}
     }
 }

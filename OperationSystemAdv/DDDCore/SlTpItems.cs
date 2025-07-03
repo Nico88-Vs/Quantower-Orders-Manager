@@ -28,8 +28,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
         #endregion
 
         #region [Properties]
-        private List<IDomainEvent> _domainEvents = new();
-        public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
         public string Id { get; private set; }
         public PositionManagerStatus Status { get; private set; }
         public Order EntryOrder { get; private set; }
@@ -311,6 +309,73 @@ namespace DivergentStrV0_1.OperationSystemAdv
             //TODO: handle failures
         }
 
+        public void UpdateTpOrders(Func<double, double> updateFunction)
+        {
+            try
+            {
+                foreach (Order order in TpOrders)
+                {
+                    var order_obj = Core.Instance.Orders.FirstOrDefault(x => x.Id == order.Id);
+
+                    if (order_obj.Status == OrderStatus.Opened)
+                    {
+
+                        double new_trigger = -1;
+                        double new_price = -1;
+
+                        if (order_obj.TriggerPrice.GetType() == typeof(double))
+                            new_trigger = updateFunction(order_obj.TriggerPrice);
+
+                        if (order_obj.Price.GetType() == typeof(double))
+                            new_price = updateFunction(order_obj.Price);
+
+
+                        Core.Instance.ModifyOrder(order_obj, triggerPrice: new_trigger > 0 ? new_price : order_obj.TriggerPrice, price: new_price > 0 ? new_price : order_obj.Price);
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+                // TODO Logs;
+                throw new Exception("Errore durante l'aggiornamento degli ordini TP/SL", ex);
+            }
+        }
+
+        public void UpdateSlOrders(Func<double, double> updateFunction)
+        {
+            try
+            {
+                foreach (Order order in SlOrders)
+                {
+                    var order_obj = Core.Instance.Orders.FirstOrDefault(x => x.Id == order.Id);
+
+                    if (order_obj.Status == OrderStatus.Opened)
+                    {
+
+                        double new_trigger = -1;
+                        double new_price = -1;
+
+                        if (order_obj.TriggerPrice.GetType() == typeof(double))
+                            new_trigger = updateFunction(order_obj.TriggerPrice);
+
+                        if (order_obj.Price.GetType() == typeof(double))
+                            new_price = updateFunction(order_obj.Price);
+
+
+                        Core.Instance.ModifyOrder(order_obj, triggerPrice: new_trigger > 0 ? new_price : order_obj.TriggerPrice, price: new_price > 0 ? new_price : order_obj.Price);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+                // TODO Logs;
+                throw new Exception("Errore durante l'aggiornamento degli ordini TP/SL", ex);
+            }
+        }
+
         //HACK: tento l aggiornamento degli ordini conscio di perdere il commento 
         //nasce perchè vengono triggerati eventi multipli d addizione , penso all aggiornamento degli ordini
         public void UpdateOrders(Order newOrder)
@@ -345,20 +410,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //TODO: Logs
                 throw;
             }
-        }
-
-        //REQ: hANDLE DISPATCHER
-        public void AddEvent(IDomainEvent domainEvent)
-        {
-            _domainEvents.Add(domainEvent);
-        }
-
-        public void DispatchEvents(IDomainEventDispatcher dispatcher)
-        {
-            foreach (var e in _domainEvents)
-                dispatcher.Dispatch(e);
-
-            _domainEvents.Clear();
         }
     }
 
