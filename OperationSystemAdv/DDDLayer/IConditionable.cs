@@ -22,7 +22,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
         void InjectStrategy(object strategy);
         string StrategyName { get; }
         public void Update(object obj);
-        public void UpdateSlTp(Func<double, double> func, bool isSl);
         public void Dispose();
         public abstract double SetQuantity();
         public List<string> RegistredGuid { get;}

@@ -2,10 +2,19 @@
 using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 {
+
+    public enum ExpositionSide
+    {
+        Long,
+        Short,
+        Both,
+        Unexposed
+    }
     [AttributeUsage(AttributeTargets.Property)]
     public class MetricAttribute : Attribute
     {
@@ -80,6 +89,16 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         [Metric("Base", "Exposed")]
         public bool Exposed => manager.Items.Any();
+
+        // todo: genera un metrica che naviga attraverso gli items aperti e verifica l esposizione ritorna ExpositionSide   
+        [Metric("Base", "Exposed Side")]
+        public ExpositionSide ExposedSide => manager.Items.Any(x => x.Side == Side.Buy || x.Side == Side.Sell) ? ExpositionSide.Both : 
+            manager.Items.Any(x => x.Side == Side.Buy) ? ExpositionSide.Long : 
+            manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Short : 
+            ExpositionSide.Unexposed;
+
+        [Metric("Base", "Exposed Count")]
+        public double ExposedCount => manager.Items.Count();
 
         [Metric("Base", "Exposed Amount")]
         public double ExposedAmount => manager.Items.Sum(i => i.Quantity - i.ClosedQuantity);

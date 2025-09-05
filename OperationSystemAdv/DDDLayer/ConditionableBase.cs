@@ -1,12 +1,7 @@
-﻿using DivergentStrV0_1.OperationSystemAdv.DDDCore;
+using DivergentStrV0_1.OperationSystemAdv.DDDCore;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using TradingPlatform.BusinessLayer;
 using TradingPlatform.BusinessLayer.Integration;
 
@@ -87,6 +82,11 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         public virtual void Trade(Side side, double price, T slMarketData, T tpMarketData)
         {
+            if (price <= 0)
+                throw new ArgumentException("Price must be positive", nameof(price));
+            if (this.Strategy == null)
+                throw new InvalidOperationException("Strategy must be injected before trading");
+                
             var comment = GenerateComment();
             this.RegistredGuid.Add(comment);
 
@@ -97,7 +97,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 Account = this.Account,
                 Symbol = this.Symbol,
                 Side = side,
-                Quantity = this.RoundQuantity(Quantity/price),
+                Quantity = price > 0 ? this.RoundQuantity(Quantity/price) : 0,
                 Price = price,
                 TriggerPrice = price,
                 OrderTypeId = Symbol.GetAlowedOrderTypes(OrderTypeUsage.Order).FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Market).Id,
@@ -111,10 +111,10 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //HACK:Handle this scenario , rapid implementation only , missing order  type handeling and trigger price managemant
             }
 
-            var sl = Strategy.CalculateSl(slMarketData);
+            var sl = Strategy.CalculateSl(slMarketData, side, price);
             var slReqests = this.HandleExitReq(sl, ord_Request, stop);
 
-            var tp = Strategy.CalculateTp(tpMarketData);
+            var tp = Strategy.CalculateTp(tpMarketData, side, price);
             var tpReqests = this.HandleExitReq(tp, ord_Request, limit);
 
             _manager.PlaceEntryOrder(ord_Request, comment, slReqests, tpReqests, this);
@@ -189,7 +189,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                         Symbol = origin.Symbol,
                         Side = origin.Side == Side.Buy ? Side.Sell : Side.Buy,
                         //TODO:handle unmatching quantity
-                        Quantity = this.RoundQuantity(origin.Quantity/prices.Count),
+                        Quantity = prices.Count > 0 ? this.RoundQuantity(origin.Quantity/prices.Count) : 0,
                         Price = item,
                         TriggerPrice = item,
                         OrderTypeId = orType.Id,
@@ -230,7 +230,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             return _manager.Items.Where(item => RegistredGuid.Contains(item.Id)).ToList(); 
         }
 
-        public void UpdateSlTp(Func<double, double> func, bool isSl)
+        public void UpdateSlTp(T marketData, bool isSl)
         {
             if (!this.Initialized)
             {
@@ -246,24 +246,24 @@ namespace DivergentStrV0_1.OperationSystemAdv
             {
                 throw new InvalidOperationException("No active trades to update SL/TP.");
             }
-
-            if (func == null)
+            
+            if (this.Strategy == null)
             {
-                throw new ArgumentNullException(nameof(func), "Update function cannot be null.");
+                throw new InvalidOperationException("Strategy is not initialized.");
             }
 
             if (isSl)
             {
                 foreach (SlTpItems item in GetActiveGuid())
                 {
-                    _manager.UpdateSl(item, func);
+                    _manager.UpdateSl(item, this.Strategy.UpdateSl(marketData, item));
                 }
             }
             else
             {
                 foreach (SlTpItems item in GetActiveGuid())
                 {
-                    _manager.UpdateTp(item, func);
+                    _manager.UpdateTp(item, this.Strategy.UpdateTp(marketData, item));
                 }
             }
         }

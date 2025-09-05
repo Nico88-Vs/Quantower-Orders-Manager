@@ -38,7 +38,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public List<Order> SlOrders { get; private set; }
         public List<Order> TpOrders { get; private set; }
         public Side Side { get; private set; }
-
+        public Symbol Symbol { get; set; }
         public double GrossProfit { get; private set; } = 0.0;
         public double FilledQuantity { get; private set; } = 0.0;
         public double Fees { get; private set; } = 0.0;
@@ -96,6 +96,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         {
             EntryOrder = order;
             Side = order.Side;
+            Symbol = order.Symbol;
 
             this.Quantity += order.TotalQuantity;
 
@@ -363,8 +364,10 @@ namespace DivergentStrV0_1.OperationSystemAdv
                         if (order_obj.Price.GetType() == typeof(double))
                             new_price = updateFunction(order_obj.Price);
 
-
-                        Core.Instance.ModifyOrder(order_obj, triggerPrice: new_trigger > 0 ? new_price : order_obj.TriggerPrice, price: new_price > 0 ? new_price : order_obj.Price);
+                        if (new_trigger > 0 && new_price > 0 && new_price != order_obj.Price && new_trigger != order_obj.TriggerPrice)
+                        {
+                            Core.Instance.ModifyOrder(order_obj, triggerPrice: new_trigger > 0 ? new_trigger : order_obj.TriggerPrice, price: new_price > 0 ? new_price : order_obj.Price);
+                        }
                     }
                 }
             }

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {}
+    "E:\\Rowan_Prj\\OrderManager\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {}
   },
   "projects": {
-    "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {
+    "E:\\Rowan_Prj\\OrderManager\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
+        "projectUniqueName": "E:\\Rowan_Prj\\OrderManager\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
         "projectName": "DivergentStrV0_1",
-        "projectPath": "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
+        "projectPath": "E:\\Rowan_Prj\\OrderManager\\Quantower-Orders-Manager\\DivergentStrV0-1.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\source\\ClonedRepo\\Quantower-Orders-Manager\\obj\\",
+        "outputPath": "E:\\Rowan_Prj\\OrderManager\\Quantower-Orders-Manager\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -45,7 +45,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
         "net8.0": {
@@ -66,7 +67,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
