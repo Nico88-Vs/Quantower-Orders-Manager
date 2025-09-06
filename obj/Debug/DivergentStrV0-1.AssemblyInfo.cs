@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DivergentStrV0_1")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6ee09a691a72e2e5752bc93b6bf40e21c9eb9338")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e2671b874a90da29ece8dfd1643abc94e140cd37")]
 [assembly: System.Reflection.AssemblyProductAttribute("DivergentStrV0_1")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DivergentStrV0_1")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

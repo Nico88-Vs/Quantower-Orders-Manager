@@ -40,6 +40,7 @@ namespace DivergentStrV0_1.Strategies
         //📝 TODO: [CRITICAL] Implementare Custom HMA con lunghezza divisa per ATR
         //📝 TODO: [CRITICAL] Implementare Volume Delta to Volume ratio
         //📝 TODO: [CRITICAL] Implementare Volume Delta divergence detection
+        //📝 TODO: [CRITICAL] Manca Lo Slipage basato su ATR?
         //📝 TODO: [HIGH] Aggiungere parametri configurabili per tutti gli indicatori
         //📝 TODO: [HIGH] Implementare sistema di selezione parametri attivi per entry/exit
 
