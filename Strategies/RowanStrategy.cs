@@ -109,8 +109,7 @@ namespace DivergentStrV0_1.Strategies
         private int _maxOpen;
         private double _totalQuantity;
         private double _maxSessionLos;
-        private double _startSessionLoss;
-        private int _minTradeSign;
+        private double _startSessionLoss;        private int _minTradeSign;
         private int _minCloseSign;
         private bool _sessionClosed = false;
         private bool _strategyActive = true;
@@ -130,6 +129,11 @@ namespace DivergentStrV0_1.Strategies
                 else
                     return true;
             }
+        }
+
+        public RowanStrategy()
+        {
+            
         }
 
         public RowanStrategy(Indicator DeltaBaseIndicator, Indicator atrsIndicator, int max_open, double totalquantity,
