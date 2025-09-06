@@ -366,6 +366,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
                         if (new_trigger > 0 && new_price > 0 && new_price != order_obj.Price && new_trigger != order_obj.TriggerPrice)
                         {
+                            Core.Instance.Loggers.Log(Id.ToString(), $"Modifica Ordine SL {order_obj.Id} Trigger: {order_obj.TriggerPrice} => {new_trigger} Price: {order_obj.Price} => {new_price}", loggingLevel: LoggingLevel.Trading);
                             Core.Instance.ModifyOrder(order_obj, triggerPrice: new_trigger > 0 ? new_trigger : order_obj.TriggerPrice, price: new_price > 0 ? new_price : order_obj.Price);
                         }
                     }

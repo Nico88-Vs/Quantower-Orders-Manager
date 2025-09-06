@@ -1,0 +1,177 @@
+Synopsis -
+Note - (1 labeled my most important elements critical)
+I trade futures ES and NQ on the 1, 3, and 5 minute time frame. I use rithmic and dxteed for data. I have traded manually for a while and wanted to automate my logic as I have been placed on a new project at work and won't have much if any time to trade regular market hours anymore. I have a lot of variables I am using, and I won't be using all at once, but I wanted to do my best to capture everything I use to trade through varying market environments. Ideally id like to create 4-5 different strategies one day to run on uncorrelated assets. 
+We have entry/exit conditions based on the following 1. (Critical)RVOL mixed with HMA and smoothed, (Critical)Volume delta to price ratio, (Critical) Volume delta relative strength, a Custom HMA with length divided by ATR (moves fast in high volatility), volume delta to volume ratio, and volume delta moving the opposite direction of price. I only used 2-3 of these at a time but I want to ability to change entry parameters during changing market regimes.
+(Critical)l have 3 different time periods I want to be allowed to trade during. If all are disabled, we can trade during all standard CME hours. If any are enabled, we can only trade during the enabled periods.
+(Critical)We have a list of which parameters we are using for entries and at least x out of the selected parameters must be true to enter. We must also be in the selected time frames if time frames are selected.
+We have a separate list (having a separate list for exits is just a nice to have) of which parameters we are using for exits and at least x out of the selected parameters must be true to exit. We also exit if we leave our selected time frame. If none are selected, we exit when market is closed for me that is 5-6pm every day and 5pm Friday to 6pm Sunday.
+
+Critical - Stop loss is based on the pervious candle highs and lows + an atr measurement in ticks. We have a min and a max distance away the stop has to fall with in. if its outside that range we revert to a stop at that min or max distance.
+Critical - Take profits are based on previous day session high lows, over night highs and lows, and morning/premarket open highs and lows. We select the closest take profit level.
+If out take profit is closer, then our minimum distance we revert to our alt take profit level or second closest take profit whichever is closer. We also use alt take profit if we are above or below all highs and lows.
+(Critical)We only enter and close positions (not tp/sl) at the close of a candle if signals are true we then immediately place a Market order (use DAY if you need to specify). Stop losses and take profits are closed immediately. Reversals of positions can also happen on the same candle. Example we are in a long and the bar closes with a short signal we immediately close the long and enter a short.
+Slippage is based on atr in ticks * a multiple of (0.000 - 2.000)
+Order size. The amount of contracts I will purchase per order
+Note - (This is a nice to have not something that is critical) We have a maximum loss limit that halts that days trading if max losses are hit. We can resume trading once we enter the next selected time frame. If no time frame is selected, we can resume trading after markets close and reopen (either 5-6pm closure or weekend closure)
+Note - This is a nice to have not something that is critical, so if it's hard to code just limit all trades to only enter once.) We only want to place 1 order per entry signal, but we do have order stacking if there are multiple signals indicating a trade in the same direction.
+(Example if stacking - 1 then we enter on first signal and cant enter again until that postil is
+closed or we reverse, if order stacking = 2 we can enter on the first entry signal then if we
+get a second signal indicating the same trading direction we can enter again, but we cannot enter a third time. When we exit, reverse position, or close we must close all open contracts.
+Logging - is great just to spot check that everything is working as it should. I have detailed logging info end the end of the doc.
+
+know this one is super weird and honestly is began as a coding error like 8 months ago but it works)
+Rvol = volume/ average volume
+RvolShort = volume/ average volume over user input int window
+Rvallong = volume/ average volume over user input int window
+Hull moving average over user input int
+RvolSmoothed = (RvolShort +RvolLong +HMA)/3
+Isrising = RvolSmoothed > RvolSmoothed [t-1]
+Isfalling = RvolSmoothed < RvolSmoothed [t-1]
+RvolNormalized - RvolSmoothed/ATR
+Rvol difference = absolute value (RvolNormalized - RvolNormalized [t-1])
+RvolOkay = RvolDifferance > user input double threshold
+rollongokay = RvolOkay + isrising
+IvolShortokay.= RvolOkay + isfalling
+
+Average Price move to Volume delta ratio -
+Let's add the option to use the median for all calcs here
+price move = absolute value (open - close)
+Average price move = average price move over user input int look back window
+volume delta = bid - ask also called (buy volume- sell volume)
+VD = absolute value (volume delta)
+Average volume delta = average absolute value (vd) over user input int look back window
+user input double threshold multiple
+Average price move to average VD ratio (APAVD) = average price move / average volume
+delta
+Current price move to current VD ratio (CPVD) = price move/ VD
+PVD strong = CPVD > APAVD * threshold multiple
+PVDlongokay. = VDPS strong and if using VD agreement
+PVDshortokay = VDPS strong and if using VD agreement
+
+
+Volume delta strength -
+Lets add the option to use the median for all cales here
+VD = absolute value (volume delta)
+Average volume delta = average absolute value (vd) over user input int look back window
+user input double threshold multiple
+VD positive = Volume delta > 0
+VD negative = Volume delta < 0
+VDstrong = VD > average VD * threshold multiple
+VDLongokay VDstrong and VD positive
+VDshortokay = VDstrong and VD negative
+
+Custom Hull moving average-
+This is a standard hull moving average BUT we divide HMA Length by ATR
+Hmalong okay = close>custom hma
+HMA short okay = Close‹ custom hma
+
+
+Volume delta to volume ratio -
+Add toggle to use median instead of mean for this
+VD = absolute value of volume delta
+Average volume delta = average absolute value (vd) over user input int look back window
+Volume = volume
+Average volume = average absolute value(volume) over user input int look back window
+VD positive = Volume delta > 0
+VD negative = Volume delta < 0
+user input double threshold multiple
+VDtV strong = (VD/volume) > (Average volume delta / Average volume)* user input double
+threshold multiple
+VDtVlongokay = VD#V strong and VD positive
+VDtvshortokay. = VDtV strong and VD negative
+
+
+VD diverged from price movement-
+VD positive = Volume delta > 0
+VD negative = Volume delta < 0
+Price drop = (close - open) < 0
+price rise = (close-open) > 0
+VD short okay = price rise and VD negative
+VD long okay = price drop and VD positive
+
+
+Time filters
+we should by default use standard CME trading hours based in EST and auto adjust for DST
+Time frame 1 true false
+User input start minute to user input end minute
+Time frame 2 true false
+User input start minute to user input end minute
+Time frame 3 true false
+User input start minute to user input end minute
+
+
+Entries-
+order size = # of contracts per order
+Position status = 1 or 0 or -1 (not sure if we need these to be honest, I just had it there to
+prevent duplicate trading)
+Stacking: true false
+If true, we can stack x orders
+
+We have a selection of which parameters we will use and which need to be true if they aren't true just make them not effect our long or short decision at all
+RVOL: true, false
+VDPS: true, false
+VDstrong: true, false Custom bra: true, false
+VDtV: true false
+VDP: true false
+User input int for how many need to be true, x out of enabled variables
+Enter buy if x out of enabled say longokay on candle (t-1] and not 1 (or stacking limit) and inside any time frame
+If we enter buy set position status to - 1 (if stacking gnabled it goes up by 1 every
+time we enter until it = stacking limit)
+Enter sell if x out of enabled say shortokay on candle (t-1) and not -1 (or stacking limit) and inside any time frame
+If we enter sell set position status to = -1
+
+
+Close position -
+We have a selection of which parameters we will use and which need to be true if they aren't true just make them not effect our close buy or close seli decision at all
+RVOL: true, false
+VDPS; true, false
+VDstrong: true, false
+Custom hma: true, false
+VDtV: true false
+VDP: true false
+User input int for how many need to be true, y out of enabled variables close buy if y out of enabled say shortokay on candle [t-1] or not inside any time frame
+If we close buy set position status to = 0
+
+Close sell if y out of enabled say longokay on candle [t-1] or not inside any time frame
+If we close sell set position status to = 0
+Stop Loss -
+For our stop loss we use the previous candles highs and lows we have a minimum and maximum distance from current price the stop can be min= user input int distance in points
+max = user input in distant in points
+If in buy and we take the previous candles minimum value - atr (in ticks) * user input double (0.000, 2.000) and set a market sell/stop at that level.
+If absolute value (pervious candle min- atr (in ticks) * user input double) - current price) > max we use price-max as our stop loss
+If absolute value (pervious candle min- atr (in ticks) * user input double) - current price) min we use price - min as our stop loss
+We need to ensure this updates once per candle to always be at the previous candle. We must make sure the old stop loss is removed on this update. We must monitor on every tick
+If in sell we take the previous candles maximum value + atr (in ticks) * user input double (0.000, 2.000) and set a market buy/stop at that level.
+if absolute value (pervious candle max + at (in ticks) * multiple user input double) - current price) > max we use price + max as our stop loss
+If absolute value (pervious candle min - atr (in ticks) * multiple user input double) - current price) ≤ min we use price + min as our stop loss
+We need to ensure this updates once per candle to always be at the previous candle. We must make sure the old stop loss is removed on this update. We must monitor and update on very tick
+If stop loss closes our position set position status to = 0
+Key level take profit stop loss using highs and lows -
+We must monitor the min and max price from previous day session 9:30(previous day)-
+5pm(previous day)) in EST (EST time in minutes 570(previous day) - 1020 (previous day)
+
+We must monitor the min and max price from overnight session 6pm (previous day) -4am (current day) in EST (EST time in minutes 1080 previous day - 240 current day)
+We must monitor the min and max value from morning session 4am (current day)-9:29am (current day) in EST (current day) (EST time in minutes 240 current day - 569 current day)
+We use the three most recent max prices (high) and three most recent min prices (lows) in
+a rolling 24 hour look back window (look back window in bars = minutes in a day (1440 /
+time frame selected in minutes)
+EX 1 minute time frame means look back is 1440 bars and 5 minute time frame look back is 288
+Now that we have our 3 session highs and lows
+For buys we select the closest high that is > price as our take profit for sells we select the closet low that is < price as our take profit
+Min distance from take profit= user input int
+Alt take profit = user input into
+If the absolute value of (closest high - price) < Min distance we default to alt take profit (alt
+take profit + current price = alt take profit)
+If the absolute value of (closest low - price) < Min distance we default to alt take profit (alt
+take profit - current price = alt take profit)
+We set our take profit upon entry and do not move it
+If take profit closes our position set position status to = 0
+if no new data has been created IE weekend and holidays fall back to the most recent day we have these time frames available on
+
+Debug -
+log every 3 candles current values of our parameters
+log every 3 candles the closest high take profit point and closest low take profit point log every 3 candles the previous candle max + atr (in ticks) * multiple and pervious candle min - atr (in ticks) * multiple
+Log whenever we enter a trade what position we took buy or sell and the set stop loss and set tp
+log the updated stop loss every time it moves ( should be every candle)
+Log any errors
+log the close of a position and reason for the close Example: closed buy, reason: Stop loss hit at price 23451.25

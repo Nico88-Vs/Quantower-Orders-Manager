@@ -49,6 +49,17 @@ namespace DivergentStrV0_1.OperationSystemAdv
             Core.Instance.TradeAdded += this.Instance_TradeAdded;
         }
 
+        #region Flow
+        public void RevertAll()
+        { 
+            foreach (var item in Items)
+            {
+
+                item.CloseAll();
+            }
+        }
+        #endregion
+
         #region QTEvents
         private void Instance_TradeAdded(Trade trade)
         {
@@ -216,6 +227,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
         #endregion
+
+        // todo: Crea un metodo che reverta le posizioni aperte , prima chiude tutte quelle aperte e poi le gira nell altro lato    
 
         public void CloseItem(SlTpItems item)
         {

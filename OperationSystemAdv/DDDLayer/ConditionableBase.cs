@@ -76,8 +76,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         public virtual void RegisterHandlers()
         {
-            //TODO: Need Implementations
-            //Dispatcher.Register(new TradingOperations(this));
+            //📝 TODO: [HIGH] Implementare registrazione completa degli handlers
+            //📝 TODO: [MEDIUM] Riattivare Dispatcher.Register quando disponibile
+            //📝 TODO: [LOW] Aggiungere handlers per eventi di mercato
         }
 
         public virtual void Trade(Side side, double price, T slMarketData, T tpMarketData)
@@ -87,11 +88,16 @@ namespace DivergentStrV0_1.OperationSystemAdv
             if (this.Strategy == null)
                 throw new InvalidOperationException("Strategy must be injected before trading");
                 
+            //📝 TODO: [HIGH] Aggiungere validazione slMarketData e tpMarketData non null
+            //📝 TODO: [HIGH] Verificare che Account e Symbol siano inizializzati
+            //📝 TODO: [MEDIUM] Aggiungere pre-trade risk checks (max exposure, daily loss limit)
+                
             var comment = GenerateComment();
             this.RegistredGuid.Add(comment);
 
-            //TODO: Finire l implementazione di PlaceOrderRequestParameters
-            //HACK: Rindondanza di comment
+            //📝 TODO: [CRITICAL] Finire l implementazione di PlaceOrderRequestParameters
+            //📝 TODO: [HIGH] Rimuovere ridondanza di comment
+            //📝 TODO: [HIGH] Implementare slippage calculation basato su ATR
             var ord_Request = new PlaceOrderRequestParameters
             {
                 Account = this.Account,
@@ -108,9 +114,13 @@ namespace DivergentStrV0_1.OperationSystemAdv
             var stop = _allowedOrdersType.FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Stop);
             if (limit == null)
             {
-                //HACK:Handle this scenario , rapid implementation only , missing order  type handeling and trigger price managemant
+                //📝 TODO: [CRITICAL] Handle this scenario - implementare gestione completa order types
+                //📝 TODO: [HIGH] Aggiungere fallback per missing order types
+                //📝 TODO: [HIGH] Implementare trigger price management corretto
             }
 
+            //📝 TODO: [HIGH] Aggiungere logging per ogni trade attempt
+            //📝 TODO: [MEDIUM] Validare che SL e TP siano calcolati correttamente
             var sl = Strategy.CalculateSl(slMarketData, side, price);
             var slReqests = this.HandleExitReq(sl, ord_Request, stop);
 
@@ -177,18 +187,22 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         protected virtual List<PlaceOrderRequestParameters> HandleExitReq(List<double> prices, PlaceOrderRequestParameters origin, OrderType orType)
         {
-            //TODO:I prezzi d uscita sono sbagliati 
+            //📝 TODO: [CRITICAL] Fixare: I prezzi d'uscita sono sbagliati - verificare calcoli SL/TP
+            //📝 TODO: [HIGH] Validare che prices non sia null o vuoto
+            //📝 TODO: [HIGH] Gestire correttamente unmatching quantity per multiple exit orders
+            
             List<PlaceOrderRequestParameters> collection = new List<PlaceOrderRequestParameters>();
             try
             {
                 foreach (var item in prices)
                 {
+                    //📝 TODO: [MEDIUM] Aggiungere validazione che item sia un prezzo valido
                     PlaceOrderRequestParameters exitReq = new PlaceOrderRequestParameters
                     {
                         Account = origin.Account,
                         Symbol = origin.Symbol,
                         Side = origin.Side == Side.Buy ? Side.Sell : Side.Buy,
-                        //TODO:handle unmatching quantity
+                        //📝 TODO: [HIGH] Implementare gestione corretta quantity per multiple exits
                         Quantity = prices.Count > 0 ? this.RoundQuantity(origin.Quantity/prices.Count) : 0,
                         Price = item,
                         TriggerPrice = item,
@@ -206,7 +220,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
             catch (Exception ex)
             {
-                //TODO:Logs
+                //📝 TODO: [HIGH] Implementare logging dettagliato per errori exit order creation
+                //📝 TODO: [MEDIUM] Considerare se restituire collection vuota o rilanciare eccezione
                 return collection;
 
             }
@@ -230,8 +245,52 @@ namespace DivergentStrV0_1.OperationSystemAdv
             return _manager.Items.Where(item => RegistredGuid.Contains(item.Id)).ToList(); 
         }
 
+        /// <summary>
+        /// Chiude tutte le posizioni aperte associate alla strategia e apre una nuova
+        /// posizione nel verso opposto con gli stessi parametri di ingresso/uscita.
+        /// </summary>
+        /// <param name="side">Direzione della nuova posizione da aprire.</param>
+        /// <param name="price">Prezzo di mercato utilizzato per chiudere e riaprire.</param>
+        /// <param name="slMarketData">Dati per il calcolo dello stop loss.</param>
+        /// <param name="tpMarketData">Dati per il calcolo del take profit.</param>
+        public virtual void ReversePosition(Side side, double price, T slMarketData, T tpMarketData)
+        {
+            // Chiude tutte le posizioni aperte cancellando gli ordini associati
+            foreach (var item in GetActiveGuid())
+            {
+                var closeReq = new PlaceOrderRequestParameters
+                {
+                    Account = this.Account,
+                    Symbol = this.Symbol,
+                    Side = item.Side == Side.Buy ? Side.Sell : Side.Buy,
+                    Quantity = this.RoundQuantity(item.Quantity - item.ClosedQuantity),
+                    Price = price,
+                    TriggerPrice = price,
+                    OrderTypeId = Symbol.GetAlowedOrderTypes(OrderTypeUsage.Order)
+                        .FirstOrDefault(x => x.Behavior == OrderTypeBehavior.Market).Id,
+                    Comment = $"{item.Id}.{OrderTypeSubcomment.StopLoss}",
+                    AdditionalParameters = new List<SettingItem>
+                    {
+                        new SettingItemBoolean(OrderType.REDUCE_ONLY, true)
+                    }
+                };
+
+                // annulla tutti gli ordini collegati alla posizione
+                item.CloseAll();
+                // invia un ordine a mercato per chiudere la posizione
+                Core.Instance.PlaceOrder(closeReq);
+            }
+
+            // apre la nuova posizione nel verso opposto
+            this.Trade(side, price, slMarketData, tpMarketData);
+        }
+
         public void UpdateSlTp(T marketData, bool isSl)
         {
+            //📝 TODO: [HIGH] Aggiungere validazione marketData non null
+            //📝 TODO: [MEDIUM] Ottimizzare: evitare multiple chiamate a GetActiveGuid()
+            //📝 TODO: [LOW] Considerare parametro enum invece di bool per isSl
+            
             if (!this.Initialized)
             {
                 throw new InvalidOperationException("ConditionableBase is not initialized. Call Init() before updating SL/TP.");
@@ -244,6 +303,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             if (this._manager.Items.Count == 0)
             {
+                //📝 TODO: [MEDIUM] Considerare se questo dovrebbe essere warning invece di exception
                 throw new InvalidOperationException("No active trades to update SL/TP.");
             }
             
@@ -252,10 +312,13 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 throw new InvalidOperationException("Strategy is not initialized.");
             }
 
+            //📝 TODO: [HIGH] Aggiungere try-catch per gestire errori durante update
+            //📝 TODO: [MEDIUM] Aggiungere logging per ogni SL/TP update
             if (isSl)
             {
                 foreach (SlTpItems item in GetActiveGuid())
                 {
+                    //📝 TODO: [HIGH] Verificare che UpdateSl non lanci NotImplementedException
                     _manager.UpdateSl(item, this.Strategy.UpdateSl(marketData, item));
                 }
             }
@@ -263,6 +326,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             {
                 foreach (SlTpItems item in GetActiveGuid())
                 {
+                    //📝 TODO: [CRITICAL] UpdateTp attualmente lancia NotImplementedException - fixare
                     _manager.UpdateTp(item, this.Strategy.UpdateTp(marketData, item));
                 }
             }
