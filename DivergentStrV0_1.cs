@@ -1,4 +1,4 @@
-﻿// Copyright QUANTOWER LLC. © 2017-2023. All rights reserved.
+// Copyright QUANTOWER LLC. © 2017-2023. All rights reserved.
 
 using DivergentStrV0_1.OperationSystemAdv;
 using DivergentStrV0_1.Strategies;
@@ -19,18 +19,6 @@ namespace DivergentStrV0_1
     public class DivergentStrV0_1 : Strategy
     {
         #region Input / Attributi e campi
-        //[InputParameter("######## Enviroment Settings ######", 0)]
-        //private bool _menu_System = false;
-        //[InputParameter("Atr IndicatroSettings Settings ", 0)]
-        //private string _menu_Atr = "###############";
-        //[InputParameter("Delta Settings ", 0)]
-        //private string _menu_Delta = "###############";
-        //[InputParameter("Strategy Settings ", 0)]
-        //private string _menu_Strategy = "###############";
-
-        //[InputParameter("Custom sessions count", 11, minimum: 0, maximum: 3, decimalPlaces: 0)]
-        //public int _CustomSessionsCount = 0;
-
         // ====== Keys per i toggle master (devono combaciare con Text nelle Relation)
         private const string KEY_ENV = "######## Enviroment Settings ######";
         private const string KEY_STRAT = "######## Strategy Settings ######";
@@ -60,6 +48,12 @@ namespace DivergentStrV0_1
         // ====== Backing fields UI per Sessions
         private int _CustomSessionsCount = 0;
 
+        // ====== Strategy Parameters
+        private double _quantity = 1000;
+        private double _minSlInTicks = 20;
+        private double _maxSlInTicks = 100;
+        private double _maxTpInTicks = 1000;
+        private bool _debugMode = false;
 
         [InputParameter("Symbol", 0)]
         public Symbol _Symbol;
@@ -67,31 +61,33 @@ namespace DivergentStrV0_1
         [InputParameter("Account", 1)]
         public Account _Account;
 
-        [InputParameter("Quantity", 3)]
-        public double _Quantity = 1;
+        [InputParameter("From Time (UTC)", 2)]
+        public DateTime _fomTime = DateTime.UtcNow.AddDays(-30);
 
-        [InputParameter("Allow Shorts", 6)]
-        public bool _AllowShorts = true;
-
-        [InputParameter("Sl Percentage", 7, 0.5, 200, 0.1)]
-        public double _SlPercent = 1.00;
-
-        [InputParameter("Tp Percentage", 8, 0.7, 200, 0.1)]
-        public double _TPercentage = 2.5;
-
-        [InputParameter("From Time", 9, 0.7, 200, 0.1)]
-        public DateTime _fomTime ;
+        [InputParameter("Debug Mode", 3)]
+        public bool _inputDebugMode = false;
 
         private HistoricalData hd;
-        private Indicator Ichimoku;
-        private Indicator Volume;
-        private Indicator CumulativeAbsorbtion;
-        private StrategyTest _strategyTest;
+        private Indicator AtrIndicator;
+        private Indicator DeltaIndicato;
+        private RowanStrategy _strategy;
         private IConditionable _conditionable = new RowanStrategy();
         private List<SimpleSessionUtc> _CustomSessions = new List<SimpleSessionUtc>();
 
 
         private bool Debug = false;
+
+        // ====== Session day mappings
+        private Dictionary<int, List<DayOfWeek>> _sessionDays = new Dictionary<int, List<DayOfWeek>>();
+
+        // ====== Public properties for accessing configured values
+        public double Quantity => _quantity;
+        public double MinSlInTicks => _minSlInTicks;
+        public double MaxSlInTicks => _maxSlInTicks;
+        public double MaxTpInTicks => _maxTpInTicks;
+        public bool DebugMode => Debug;
+        public IReadOnlyList<SimpleSessionUtc> CustomSessions => _CustomSessions.AsReadOnly();
+        public int CustomSessionsCount => _CustomSessionsCount;
 
         private double procesPercent => this.hd != null &&
                               this.hd.VolumeAnalysisCalculationProgress != null ? this.hd.VolumeAnalysisCalculationProgress.ProgressPercent : 0;
@@ -105,7 +101,7 @@ namespace DivergentStrV0_1
             : base()
         {
             this.Name = this._conditionable.StrategyName;
-            this.Description = "Gap Divergency ichi levels";
+            this.Description = "Rowan Strategy";
         }
 
         #region Main Methods/Lifecycle
@@ -143,7 +139,7 @@ namespace DivergentStrV0_1
             {
                 var settings = base.Settings;
 
-                // ===== 100x — Sessions =====
+                #region// ===== 100x — Sessions =====
                 // Master numerico: DA QUI dipendono start/end con relation
                 settings.Add(new SettingItemBoolean(KEY_SESS, false)
                 {
@@ -187,30 +183,35 @@ namespace DivergentStrV0_1
                         SortIndex = 1002 + i * 2,
                         Relation = relation
                     });
-                }
 
-                // ===== 200x — Environment =====
+                    foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                    {
+                        settings.Add(new SettingItemBoolean($"session{i + 1}On{day}", true)
+                        {
+                            Text = $"Session {i + 1} on {day}",
+                            SortIndex = 1003 + i * 2,
+                            Relation = relation
+                        });
+                    }
+                }
+                #endregion
+
+                #region // ===== 200x — Environment =====
                 settings.Add(new SettingItemBoolean(KEY_ENV, _uiShowEnv)
                 {
                     Text = KEY_ENV,
                     SortIndex = 2000
                 });
+                #endregion
 
-                settings.Add(new SettingItemBoolean("Debug", this.Debug)
-                {
-                    Text = "Debug",
-                    SortIndex = 2001,
-                    Relation = new SettingItemRelationVisibility(KEY_ENV, true)
-                });
-
-                // ===== 300x — Strategy (campi già esistenti come InputParameter, riproposti in Settings) =====
+                #region// ===== 300x — Strategy (campi già esistenti come InputParameter, riproposti in Settings) =====
                 settings.Add(new SettingItemBoolean(KEY_STRAT, _uiShowStrat)
                 {
                     Text = KEY_STRAT,
                     SortIndex = 3000
                 });
 
-                settings.Add(new SettingItemDouble(nameof(_Quantity), _Quantity)
+                settings.Add(new SettingItemDouble("Quantity", _quantity)
                 {
                     Text = "Quantity",
                     SortIndex = 3001,
@@ -220,45 +221,46 @@ namespace DivergentStrV0_1
                     Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
                 });
 
-                settings.Add(new SettingItemBoolean(nameof(_AllowShorts), _AllowShorts)
+                settings.Add(new SettingItemDouble("Min SL In Ticks", _minSlInTicks)
                 {
-                    Text = "Allow Shorts",
-                    SortIndex = 3002,
-                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
-                });
-
-                settings.Add(new SettingItemDouble(nameof(_SlPercent), _SlPercent)
-                {
-                    Text = "SL Percentage",
+                    Text = "Min SL In Ticks",
                     SortIndex = 3003,
-                    Minimum = 0.1,
-                    Maximum = 500,
-                    Increment = 0.1,
+                    Minimum = 1,
+                    Maximum = 15000,
+                    Increment = 1,
                     Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
                 });
 
-                settings.Add(new SettingItemDouble(nameof(_TPercentage), _TPercentage)
+                settings.Add(new SettingItemDouble("Max SL In Ticks", _maxSlInTicks)
                 {
-                    Text = "TP Percentage",
+                    Text = "Max SL In Ticks",
                     SortIndex = 3004,
-                    Minimum = 0.1,
-                    Maximum = 500,
-                    Increment = 0.1,
+                    Minimum = 1,
+                    Maximum = 50000,
+                    Increment = 1,
                     Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
                 });
 
-                settings.Add(new SettingItemDateTime(nameof(_fomTime), _fomTime == default ? DateTime.UtcNow : _fomTime)
+                settings.Add(new SettingItemDouble("Max Tp In Ticks", _maxTpInTicks)
                 {
-                    Text = "From Time (UTC)",
+                    Text = "Max TP In Ticks",
                     SortIndex = 3005,
+                    Minimum = 1,
+                    Maximum = 50000,
+                    Increment = 1,
                     Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
                 });
 
-                // (Opzionale) Se vuoi anche Symbol/Account nel pannello:
-                // settings.Add(new SettingItemSymbol(nameof(_Symbol), _Symbol) { ... Relation = new SettingItemRelationVisibility(KEY_STRAT, true) });
-                // settings.Add(new SettingItemAccount(nameof(_Account), _Account) { ... Relation = new SettingItemRelationVisibility(KEY_STRAT, true) });
+                settings.Add(new SettingItemBoolean("Debug", _debugMode)
+                {
+                    Text = "Debug Mode",
+                    SortIndex = 3006,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
 
-                // ===== 400x — ATR =====
+                #endregion
+
+                #region atr // ===== 400x — ATR =====
                 settings.Add(new SettingItemBoolean(KEY_ATR, _uiShowAtr)
                 {
                     Text = KEY_ATR,
@@ -290,8 +292,9 @@ namespace DivergentStrV0_1
                     Increment = 0.001,
                     Relation = new SettingItemRelationVisibility(KEY_ATR, true)
                 });
+                #endregion
 
-                // ===== 500x — Delta =====
+                #region// ===== 500x — Delta =====
                 settings.Add(new SettingItemBoolean(KEY_DELTA, _uiShowDelta)
                 {
                     Text = KEY_DELTA,
@@ -342,6 +345,7 @@ namespace DivergentStrV0_1
                     Increment = 0.1,
                     Relation = new SettingItemRelationVisibility(KEY_DELTA, true)
                 });
+                #endregion
 
                 return settings;
             }
@@ -349,40 +353,109 @@ namespace DivergentStrV0_1
             {
                 base.Settings = value;
 
-                // ===== Sessions =====
+                try
+                {
+                    // ===== Sessions =====
                 if (value.TryGetValue(KEY_SESS, out bool sessBool))
-                    if (sessBool == true)
-                        if (value.TryGetValue(KEY_SESS_COUNT, out int sessCount))
-                        {
-                            this._CustomSessionsCount = 0; // disabilita tutte le sessioni
-                            this._CustomSessionsCount = Math.Max(0, Math.Min(3, sessCount));
+                {
+                    if (sessBool && value.TryGetValue(KEY_SESS_COUNT, out int sessCount))
+                    {
+                        this._CustomSessionsCount = Math.Max(0, Math.Min(3, sessCount));
+                    }
+                }
 
-                            //📝 TODO: [Required] build sessions obj
-
-                        }
-                
-
+                // Rebuild custom sessions based on current count
                 this._CustomSessions.Clear();
+                this._sessionDays.Clear();
+                
                 for (int i = 0; i < this._CustomSessionsCount; i++)
                 {
-                    TimeOnly start = default;
-                    TimeOnly end = default;
-                    value.TryGetValue($"session{i + 1}Start", out start);
-                    value.TryGetValue($"session{i + 1}End", out end);
-                    this._CustomSessions.Add(new SimpleSessionUtc($"session{i + 1}", new List<DayOfWeek> { DayOfWeek.Monday }, start, end));
+                    try
+                    {
+                        // Get start and end times from DateTime settings
+                        DateTime startDateTime = DateTime.UtcNow;
+                        DateTime endDateTime = DateTime.UtcNow;
+                        
+                        if (value.TryGetValue($"session{i + 1}Start", out DateTime startDt))
+                            startDateTime = startDt;
+                        if (value.TryGetValue($"session{i + 1}End", out DateTime endDt))
+                            endDateTime = endDt;
+
+                        // Convert DateTime to TimeOnly
+                        TimeOnly start = TimeOnly.FromDateTime(startDateTime);
+                        TimeOnly end = TimeOnly.FromDateTime(endDateTime);
+
+                        // Validate time range
+                        if (start == end)
+                        {
+                            Core.Instance.Loggers.Log($"Warning: Session {i + 1} has same start and end time", LoggingLevel.Error);
+                        }
+
+                        // Collect active days for this session
+                        List<DayOfWeek> activeDays = new List<DayOfWeek>();
+                        foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                        {
+                            if (value.TryGetValue($"session{i + 1}On{day}", out bool dayActive) && dayActive)
+                            {
+                                activeDays.Add(day);
+                            }
+                        }
+
+                        // If no days are selected, default to Monday-Friday
+                        if (activeDays.Count == 0)
+                        {
+                            activeDays.AddRange(new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday });
+                            Core.Instance.Loggers.Log($"Session {i + 1}: No days selected, defaulting to weekdays", LoggingLevel.Error);
+                        }
+
+                        // Store day mapping for reference
+                        this._sessionDays[i] = activeDays;
+
+                        // Create and add the session
+                        var session = new SimpleSessionUtc($"CustomSession{i + 1}", activeDays, start, end);
+                        this._CustomSessions.Add(session);
+                        
+                        if (Debug)
+                        {
+                            Core.Instance.Loggers.Log($"Created session {i + 1}: {start}-{end} on {string.Join(", ", activeDays)}", LoggingLevel.System);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Core.Instance.Loggers.Log($"Error creating session {i + 1}: {ex.Message}", LoggingLevel.Error);
+                    }
                 }
 
                 // ===== Env =====
                 if (value.TryGetValue(KEY_ENV, out bool showEnv)) _uiShowEnv = showEnv;
-                if (value.TryGetValue("Debug", out bool dbg)) this.Debug = dbg;
+                
+                // Sync input parameter with settings
+                Debug = _inputDebugMode || _debugMode;
 
                 // ===== Strategy =====
                 if (value.TryGetValue(KEY_STRAT, out bool showStrat)) _uiShowStrat = showStrat;
-                if (value.TryGetValue("Quantity", out double qty)) _Quantity = qty;
-                if (value.TryGetValue("Allow Shorts", out bool allowShorts)) _AllowShorts = allowShorts;
-                if (value.TryGetValue("SL Percentage", out double slp)) _SlPercent = slp;
-                if (value.TryGetValue("TP Percentage", out double tpp)) _TPercentage = tpp;
                 if (value.TryGetValue("From Time (UTC)", out DateTime ft)) _fomTime = ft;
+                if (value.TryGetValue("Quantity", out double qty)) 
+                {
+                    _quantity = Math.Max(0.0001, qty); // Ensure positive quantity
+                }
+                if (value.TryGetValue("Min SL In Ticks", out double minSl)) 
+                {
+                    _minSlInTicks = Math.Max(1, minSl); // Ensure minimum 1 tick
+                }
+                if (value.TryGetValue("Max SL In Ticks", out double maxSl)) 
+                {
+                    _maxSlInTicks = Math.Max(_minSlInTicks, maxSl); // Ensure max >= min
+                }
+                if (value.TryGetValue("Max TP In Ticks", out double maxTp)) 
+                {
+                    _maxTpInTicks = Math.Max(1, maxTp); // Ensure positive TP
+                }
+                if (value.TryGetValue("Debug", out bool debugMode)) 
+                {
+                    _debugMode = debugMode;
+                    Debug = debugMode;
+                }
 
                 // ===== ATR =====
                 if (value.TryGetValue(KEY_ATR, out bool showAtr)) _uiShowAtr = showAtr;
@@ -397,6 +470,15 @@ namespace DivergentStrV0_1
                 if (value.TryGetValue("Delta: Threshold Multiplier", out double dTh)) _uiDeltaThresholdMult = dTh;
                 if (value.TryGetValue("Delta Strength: Lookback", out int dSLb)) _uiDeltaStrengthLookback = dSLb;
                 if (value.TryGetValue("Delta Strength: Threshold Multiplier", out double dSTh)) _uiDeltaStrengthMult = dSTh;
+                }
+                catch (Exception ex)
+                {
+                    Core.Instance.Loggers.Log($"Error updating settings: {ex.Message}", LoggingLevel.Error);
+                    // Reset to safe defaults on error
+                    _CustomSessionsCount = 0;
+                    _CustomSessions.Clear();
+                    _sessionDays.Clear();
+                }
             }
         }
 
