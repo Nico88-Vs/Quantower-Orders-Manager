@@ -31,7 +31,7 @@ namespace DivergentStrV0_1.Utils
     {
         public IReadOnlyList<TPLevelItem> Levels { get; }
 
-        public TPLevelsDto(List<TPLevelItem> levels)
+        public TPLevelsDto(List<TPLevelItem> levels = null)
         {
             Levels = levels ?? new List<TPLevelItem>();
         }
@@ -57,7 +57,7 @@ namespace DivergentStrV0_1.Utils
         public static List<SimpleSessionUtc> TradeSessions { get; set; } = new();
 
         private static HystoryDataProvider _dataProvider;
-        public static TPLevelsDto TpLevels { get; private set; }
+        public static TPLevelsDto TpLevels { get; private set; } = new TPLevelsDto();
         public static bool IsInitialized => _dataProvider != null;
         public static event EventHandler<Status> TradeSessionsStatusChanged;
         public static Status CurrentStatus
@@ -151,8 +151,18 @@ namespace DivergentStrV0_1.Utils
 
             // --- Prev day (DAY1) ---
             {
-                DateTime toTime = currentHistoricalData.ToTime;
-                DateTime fromTime = toTime.AddDays(-3);
+                DateTime toTime = currentHistoricalData[0].TimeLeft;
+
+                TimeSpan span = toTime - currentHistoricalData.FromTime;
+
+                if (span.TotalDays < 2)
+                {
+                    Core.Instance.Loggers.Log("HistoricalData range too small to calculate PrevDay.", LoggingLevel.Error);
+                    throw new InvalidOperationException("HistoricalData range too small to calculate PrevDay.");
+                }
+
+                DateTime tempTime = toTime.AddDays(-3);
+                DateTime fromTime = tempTime >= currentHistoricalData.FromTime ? tempTime : currentHistoricalData.FromTime;
                 var hdDay = symbol.GetHistory(Period.DAY1, fromTime);
                 try
                 {

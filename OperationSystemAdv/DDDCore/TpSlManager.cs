@@ -92,7 +92,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         //TODO: Logs
         private void Instance_OrderAdded(Order obj)
         {
-            if (obj.Status != OrderStatus.Opened || string.IsNullOrEmpty(obj?.Comment))
+            if (obj.Status != OrderStatus.Opened || string.IsNullOrEmpty(obj?.Comment) && obj.OriginalStatus != null)
             {
                 var modifiedKey = _itemsDictionary.FirstOrDefault(kvp => kvp.Value.Contains(obj.Id)).Key;
                 //TODO: A volte e nullo forse perche e stato spostato

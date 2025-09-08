@@ -53,7 +53,7 @@ namespace DivergentStrV0_1.Utils
             Status tempStatus = Contains(item) ? Status.Active : Status.Inactive;
 
             if (tempStatus != this._status)
-                StatusChanged.InvokeSafely(this, tempStatus);
+                StatusChanged.Invoke(this, tempStatus);
 
             this._status = tempStatus;
         }

@@ -20,12 +20,13 @@ namespace DivergentStrV0_1
     {
         #region Input / Attributi e campi
         // ====== Keys per i toggle master (devono combaciare con Text nelle Relation)
-        private const string KEY_ENV = "######## Enviroment Settings ######";
+        //private const string KEY_ENV = "######## Enviroment Settings ######";
         private const string KEY_STRAT = "######## Strategy Settings ######";
         private const string KEY_ATR = "######## Atr Indicator Settings ######";
         private const string KEY_DELTA = "######## Delta Settings ######";
         private const string KEY_SESS = "######## Sessions Settings ######";
         private const string KEY_SESS_COUNT = "######## Custom sessions count ######";
+        private const string KEY_SESS_USEDEFAULT = "Use Default Sessions";
 
         // ====== Stato dei toggle (default ragionevoli; non dipendono dagli InputParameter)
         private bool _uiShowEnv = true;
@@ -64,16 +65,21 @@ namespace DivergentStrV0_1
         [InputParameter("From Time (UTC)", 2)]
         public DateTime _fomTime = DateTime.UtcNow.AddDays(-30);
 
-        [InputParameter("Debug Mode", 3)]
+        [InputParameter("Async Mode", 3)]
         public bool _inputDebugMode = false;
+
+        [InputParameter("Period", 4)]
+        public Period _period = Period.MIN1;
 
         private HistoricalData hd;
         private Indicator AtrIndicator;
         private Indicator DeltaIndicato;
         private RowanStrategy _strategy;
+        private bool _UseDefaultSessions = true;
         private IConditionable _conditionable = new RowanStrategy();
         private List<SimpleSessionUtc> _CustomSessions = new List<SimpleSessionUtc>();
 
+        //📝 TODO: [IMPLEMENT] aggiungere metodo per gestirer le sessioni fuori sessione 
 
         private bool Debug = false;
 
@@ -113,6 +119,17 @@ namespace DivergentStrV0_1
         protected override void OnRun()
         {
 
+            //📝 TODO: [REQUIRED] use settings
+
+            this.AtrIndicator = Core.Instance.Indicators.CreateIndicator(Core.Instance.Indicators.All.FirstOrDefault(x => x.Name == "RVOL (evolved)"));
+            this.DeltaIndicato = Core.Instance.Indicators.CreateIndicator(Core.Instance.Indicators.All.FirstOrDefault(x => x.Name == "DeltaBasedIndicators"));
+
+            // Set indicator parameters
+            this.DeltaIndicato.Settings = new List<SettingItem>
+            {
+                new SettingItemBoolean("Force Volume Ready", true)
+            };
+
             if (!this._conditionable.Initialized)
             {
                 var req = new HistoryRequestParameters()
@@ -124,10 +141,16 @@ namespace DivergentStrV0_1
 
                 };
 
-                //this._strategyTest = new StrategyTest();
-                //this._strategyTest.InjectStrategy(new FixedSlTpStrategy(0.95, 1.05));
-                //this._strategyTest.Init(req, this._Account, true);
-                //this._conditionable = _strategyTest;
+                foreach (var s in OffMarketUtc.Build())
+                    StaticSessionManager.AddSession(s, Utils.SessionType.Target);
+
+                foreach (var sv in InMarketUtc.Build())
+                    StaticSessionManager.AddSession(sv, Utils.SessionType.Trade);
+
+                this._strategy = new RowanStrategy(this.DeltaIndicato, this.AtrIndicator, 3, 1000, 3, 2, 100, 3);
+                this._strategy.InjectStrategy(new RowanSlTpStrategy(100,500));
+                this._strategy.Init(req, this._Account, true);
+                this._conditionable = _strategy;
 
             }
 
@@ -140,6 +163,9 @@ namespace DivergentStrV0_1
                 var settings = base.Settings;
 
                 #region// ===== 100x — Sessions =====
+
+                //📝 TODO: [REQUIRED] SET relation visibility to use default
+
                 // Master numerico: DA QUI dipendono start/end con relation
                 settings.Add(new SettingItemBoolean(KEY_SESS, false)
                 {
@@ -154,6 +180,13 @@ namespace DivergentStrV0_1
                     Minimum = 0,
                     Maximum = 3,
                     Relation = new SettingItemRelationVisibility(KEY_SESS, true)
+                });
+
+                settings.Add(new SettingItemBoolean(KEY_SESS_USEDEFAULT, false)
+                {
+                    Text = KEY_SESS_USEDEFAULT,
+                    SortIndex = 1000,
+                    Value = false
                 });
 
                 for (int i = 0; i < 3; i++)
@@ -194,14 +227,6 @@ namespace DivergentStrV0_1
                         });
                     }
                 }
-                #endregion
-
-                #region // ===== 200x — Environment =====
-                settings.Add(new SettingItemBoolean(KEY_ENV, _uiShowEnv)
-                {
-                    Text = KEY_ENV,
-                    SortIndex = 2000
-                });
                 #endregion
 
                 #region// ===== 300x — Strategy (campi già esistenti come InputParameter, riproposti in Settings) =====
@@ -248,13 +273,6 @@ namespace DivergentStrV0_1
                     Minimum = 1,
                     Maximum = 50000,
                     Increment = 1,
-                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
-                });
-
-                settings.Add(new SettingItemBoolean("Debug", _debugMode)
-                {
-                    Text = "Debug Mode",
-                    SortIndex = 3006,
                     Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
                 });
 
@@ -367,6 +385,8 @@ namespace DivergentStrV0_1
                 // Rebuild custom sessions based on current count
                 this._CustomSessions.Clear();
                 this._sessionDays.Clear();
+
+
                 
                 for (int i = 0; i < this._CustomSessionsCount; i++)
                 {
@@ -377,9 +397,9 @@ namespace DivergentStrV0_1
                         DateTime endDateTime = DateTime.UtcNow;
                         
                         if (value.TryGetValue($"session{i + 1}Start", out DateTime startDt))
-                            startDateTime = startDt;
+                            startDateTime = Core.Instance.TimeUtils.ConvertFromTimeZoneToUTC(startDateTime, Core.Instance.TimeUtils.SelectedTimeZone);
                         if (value.TryGetValue($"session{i + 1}End", out DateTime endDt))
-                            endDateTime = endDt;
+                            endDateTime = Core.Instance.TimeUtils.ConvertFromTimeZoneToUTC(endDateTime, Core.Instance.TimeUtils.SelectedTimeZone);
 
                         // Convert DateTime to TimeOnly
                         TimeOnly start = TimeOnly.FromDateTime(startDateTime);
@@ -414,11 +434,6 @@ namespace DivergentStrV0_1
                         // Create and add the session
                         var session = new SimpleSessionUtc($"CustomSession{i + 1}", activeDays, start, end);
                         this._CustomSessions.Add(session);
-                        
-                        if (Debug)
-                        {
-                            Core.Instance.Loggers.Log($"Created session {i + 1}: {start}-{end} on {string.Join(", ", activeDays)}", LoggingLevel.System);
-                        }
                     }
                     catch (Exception ex)
                     {
@@ -426,11 +441,7 @@ namespace DivergentStrV0_1
                     }
                 }
 
-                // ===== Env =====
-                if (value.TryGetValue(KEY_ENV, out bool showEnv)) _uiShowEnv = showEnv;
-                
-                // Sync input parameter with settings
-                Debug = _inputDebugMode || _debugMode;
+                if (value.TryGetValue(KEY_SESS_USEDEFAULT, out bool useDefault)) _UseDefaultSessions = useDefault;
 
                 // ===== Strategy =====
                 if (value.TryGetValue(KEY_STRAT, out bool showStrat)) _uiShowStrat = showStrat;

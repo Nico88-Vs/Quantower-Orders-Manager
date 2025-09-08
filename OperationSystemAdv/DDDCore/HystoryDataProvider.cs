@@ -53,6 +53,11 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
             if (onVolumeReady != null)
             {
+
+                #region 🐞 BUG [RESOLVE] #1
+                //capita che questo evento venga chiamato poco dopo la creazione quindi il link fallisce perche successivo al evento
+                #endregion
+
                 provider.VolumeAnalysisCompleted += onVolumeReady;
             }
             return provider;

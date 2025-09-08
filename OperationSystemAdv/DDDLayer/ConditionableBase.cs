@@ -287,78 +287,60 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         public void UpdateSlTp(T marketData, bool isSl)
         {
-            //📝 TODO: [HIGH] Aggiungere validazione marketData non null
-            //📝 TODO: [MEDIUM] Ottimizzare: evitare multiple chiamate a GetActiveGuid()
-            //📝 TODO: [LOW] Considerare parametro enum invece di bool per isSl
-            
-            if (!this.Initialized)
+            try
             {
-                throw new InvalidOperationException("ConditionableBase is not initialized. Call Init() before updating SL/TP.");
-            }
+                //📝 TODO: [HIGH] Aggiungere validazione marketData non null
+                //📝 TODO: [MEDIUM] Ottimizzare: evitare multiple chiamate a GetActiveGuid()
+                //📝 TODO: [LOW] Considerare parametro enum invece di bool per isSl
 
-            if (this._manager == null)
-            {
-                throw new InvalidOperationException("TpSlManager is not initialized.");
-            }
-
-            if (this._manager.Items.Count == 0)
-            {
-                //📝 TODO: [MEDIUM] Considerare se questo dovrebbe essere warning invece di exception
-                throw new InvalidOperationException("No active trades to update SL/TP.");
-            }
-            
-            if (this.Strategy == null)
-            {
-                throw new InvalidOperationException("Strategy is not initialized.");
-            }
-
-            //📝 TODO: [HIGH] Aggiungere try-catch per gestire errori durante update
-            //📝 TODO: [MEDIUM] Aggiungere logging per ogni SL/TP update
-            if (isSl)
-            {
-                foreach (SlTpItems item in GetActiveGuid())
+                if (!this.Initialized)
                 {
-                    //📝 TODO: [HIGH] Verificare che UpdateSl non lanci NotImplementedException
-                    _manager.UpdateSl(item, this.Strategy.UpdateSl(marketData, item));
+                    throw new InvalidOperationException("ConditionableBase is not initialized. Call Init() before updating SL/TP.");
+                }
+
+                if (this._manager == null)
+                {
+                    throw new InvalidOperationException("TpSlManager is not initialized.");
+                }
+
+                if (this._manager.Items.Count == 0)
+                    return;
+
+                if (this.Strategy == null)
+                {
+                    throw new InvalidOperationException("Strategy is not initialized.");
+                }
+
+                //📝 TODO: [HIGH] Aggiungere try-catch per gestire errori durante update
+                //📝 TODO: [MEDIUM] Aggiungere logging per ogni SL/TP update
+                if (isSl)
+                {
+                    foreach (SlTpItems item in GetActiveGuid())
+                    {
+                        //📝 TODO: [HIGH] Verificare che UpdateSl non lanci NotImplementedException
+                        _manager.UpdateSl(item, this.Strategy.UpdateSl(marketData, item));
+                    }
+                }
+                else
+                {
+                    foreach (SlTpItems item in GetActiveGuid())
+                    {
+                        //📝 TODO: [CRITICAL] UpdateTp attualmente lancia NotImplementedException - fixare
+                        _manager.UpdateTp(item, this.Strategy.UpdateTp(marketData, item));
+                    }
                 }
             }
-            else
+            catch (Exception ex)
             {
-                foreach (SlTpItems item in GetActiveGuid())
-                {
-                    //📝 TODO: [CRITICAL] UpdateTp attualmente lancia NotImplementedException - fixare
-                    _manager.UpdateTp(item, this.Strategy.UpdateTp(marketData, item));
-                }
+                Core.Instance.Loggers.Log($"Error updating {(isSl ? "SL" : "TP")}: {ex.Message}");
+                throw;
             }
+            
         }
 
         #endregion
 
 
-        #region deprecated 
-        //public abstract void GetMetrics();
-
-        //public virtual double NetProfit => _manager.NetProfit;
-        //public virtual double GrossProfit => _manager.GrossProfit;
-        //public virtual double PaiedFees => _manager.PaiedFees;
-
-        //public virtual int PositiveOperations => _manager.N_Positive_Operations;
-        //public virtual int NegativeOperations => _manager.N_Negative_Operations;
-
-        //public virtual int ShortCount => _manager.N_Short;
-        //public virtual int LongCount => _manager.N_Long;
-
-        //public virtual int PositiveLongs => _manager.N_Positive_Longs;
-        //public virtual int PositiveShorts => _manager.N_Positive_Short;
-
-        //public virtual int NegativeLongs => _manager.N_Negative_Long;
-        //public virtual int NegativeShorts => _manager.N_Negative_Short;
-
-        //public virtual int OperationCount => _manager.N_Operations;
-        //public virtual bool Exposed => _manager.Exposed;
-        //public virtual double ExposedAmount => _manager.ExposedAmount;
-        //public virtual int TradeCount => _manager.TradeCount;
-        #endregion
     }
 
 }

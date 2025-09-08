@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using TradingPlatform.BusinessLayer;
+using TradingPlatform.BusinessLayer.Licence;
 
 namespace DivergentStrV0_1.Strategies
 {
@@ -109,12 +110,14 @@ namespace DivergentStrV0_1.Strategies
         private int _maxOpen;
         private double _totalQuantity;
         private double _maxSessionLos;
-        private double _startSessionLoss;        private int _minTradeSign;
+        private double _startSessionLoss;        
+        private int _minTradeSign;
         private int _minCloseSign;
         private bool _sessionClosed = false;
         private bool _strategyActive = true;
         private int _verbosityFreq = 0;
         private int _verbosityFreqCount = 0;
+        private bool _loadAsync;
 
         public bool AllowToTrade
         {
@@ -153,8 +156,35 @@ namespace DivergentStrV0_1.Strategies
 
         public override void Init(HistoryRequestParameters req, Account account, bool loadAsync = false, string description = "", bool allowHeavyMetrics = false)
         {
-            base.Init(req, account, false, description, allowHeavyMetrics);
+            base.Init(req, account, loadAsync, description, allowHeavyMetrics);
+            StaticSessionManager.Initialize(this.HistoryProvider);
             StaticSessionManager.TradeSessionsStatusChanged += StaticSessionManager_TradeSessionsStatusChanged;
+            this._loadAsync = loadAsync;
+
+            if (!this._loadAsync)
+            {
+                this.HistoryProvider.HistoricalData.AddIndicator(this._atrIndicator);
+                this.HistoryProvider.HistoricalData.AddIndicator(this._deltaBaseIndicator);
+            }
+
+        }
+
+       
+        public override void OnVolumeDataReady()
+        {
+
+            //📝 TODO: [DEBUG] debug this
+
+            base.OnVolumeDataReady();
+
+            if (this._loadAsync)
+            {
+                if (this._atrIndicator.Count == 0)
+                    this.HistoryProvider.HistoricalData.AddIndicator(this._atrIndicator);
+                if (this._deltaBaseIndicator.Count == 0)
+                    this.HistoryProvider.HistoricalData.AddIndicator(this._deltaBaseIndicator);
+            }
+
         }
 
         private void StaticSessionManager_TradeSessionsStatusChanged(object sender, Status e)
@@ -176,20 +206,61 @@ namespace DivergentStrV0_1.Strategies
             };
         }
 
+        public override void Dispose()
+        {
+            StaticSessionManager.TradeSessionsStatusChanged -= StaticSessionManager_TradeSessionsStatusChanged;
+            this._atrIndicator.Dispose();
+            this._deltaBaseIndicator.Dispose();
+
+            base.Dispose();
+        }
+
         public override double SetQuantity() => this._totalQuantity / this._maxOpen;
 
         //📝 TODO: [Critical] passare un MarketData object con tutti i dati necessari per le decisioni di trade
         public override void Update(object obj)
         {
+
+            //🧠 HINT: [FLOW] ritento l inserimento degli indicatori a causa del bug noto #1
+            if (this._atrIndicator.Count == 0)
+                this.HistoryProvider.HistoricalData.AddIndicator(this._atrIndicator);
+            if (this._deltaBaseIndicator.Count == 0)
+                this.HistoryProvider.HistoricalData.AddIndicator(this._deltaBaseIndicator);
+
+            //🧠 HINT: [INFO] Base entrypoint dal history provider creato in condizional base tramite il costruttore statico
+            HistoryEventArgs e = obj as HistoryEventArgs ?? null;
+            if (e == null)
+            {
+                Core.Instance.Loggers.Log("Rowan Strategy error at Update casting", LoggingLevel.Error);
+                Core.Instance.Loggers.Log("Strategy Will be Disabled", LoggingLevel.Error);
+                this.ForceClosePositions(5);
+                this._strategyActive = false;
+                return;
+            }
+
+            HistoryItem item = (HistoryItem)e.HistoryItem;
+
+            StaticSessionManager.Update(item);
+            try
+            {
+                
+            }
+            catch (Exception ex)
+            {
+                Core.Instance.Loggers.Log($"Rowan Strategy error at Update casting with message : {ex.Message}", LoggingLevel.Error);
+                throw;
+            }
+           
+
+
+
+            if (this._loadAsync && !this.HistoryProvider.VolumeDataReady) 
+                return;
+
             if (!_strategyActive)
                 return;
             try
             {
-                //📝 TODO: [Critical] spostare nella stratetegia principale
-                HistoryEventArgs item = (HistoryEventArgs)obj;
-                HistoryItem data = (HistoryItem)item.HistoryItem;
-                StaticSessionManager.Update(data);
-
                 if (!this.AllowToTrade)
                 {
 
@@ -206,8 +277,19 @@ namespace DivergentStrV0_1.Strategies
                     return;
                 }
 
+
+                //📝 TODO: [REQUIRED] aggiungere slippage atr
+                //📝 TODO: [REQUIRED] verificare se e hd [0], [1] oppure [1], [2]
+
+                SlTpData marketData = new SlTpData()
+                {
+                    currentPrice = item[PriceType.Open],
+                    Symbol = this.Symbol,
+                    SlTriggerPrice = this.HistoryProvider.HistoricalData[2][PriceType.Low]
+                };
+
                 //🧠 HINT: [Flusso] ripeto con Market Data
-                SlTpData marketData = (SlTpData)obj;
+                //SlTpData marketData = (SlTpData)obj;
                
 
                 TradeSignal signal = this.CalculateTradeSignal();
@@ -291,8 +373,13 @@ namespace DivergentStrV0_1.Strategies
                     }
                 }
 
-                if (action == TradeAction.Wait)
-                    this.UpdateSlTp(marketData, true);
+                #region 🐞 BUG [FLOW] #3
+                //arrivano commenti nulli al order update
+                //if (action == TradeAction.Wait)
+                //    this.UpdateSlTp(marketData, true);
+                #endregion
+
+
 
                 if (this._verbosityFreqCount <= this._verbosityFreq)
                 {
@@ -309,11 +396,11 @@ namespace DivergentStrV0_1.Strategies
 
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
                 //📝 TODO: [Log]
-
+                Core.Instance.Loggers.Log($"Rowan Strategy error at Update with message : {ex.Message}", LoggingLevel.Error);
                 throw;
             }
         }
@@ -375,6 +462,21 @@ namespace DivergentStrV0_1.Strategies
             int shortSignCount = 0;
             foreach (LineSeries sign in this._deltaBaseIndicator.LinesSeries)
             {
+
+                #region 🐞 BUG [RESOLVE] #2
+                //TUTTE LE LINESERIES RITORNANO NAN PER OGNI VALORE AD OGNI INDICE
+                var debug1 = sign.GetValue(1);
+                var debug2 = sign.GetValue(2);
+                var debug3 = sign.GetValue() == 0;
+                for (int i = 0; i < this._deltaBaseIndicator.Count; i++)
+                {
+                    if (sign[i] >= 0)
+                        Core.Instance.Loggers.Log($"DeltaBaseIndicator {sign.Name} value at {i} is {sign[i]}", LoggingLevel.Trading);
+                }
+                var debug4 = this._deltaBaseIndicator.HistoricalData;
+                #endregion
+
+
                 if (sign.GetValue() > 0)
                     logSignCount++;
                 else if (sign.GetValue() < 0)

@@ -9,9 +9,6 @@ namespace DivergentStrV0_1.Strategies
 {
     public struct SlTpData
     {
-        public double[] sessionsHighs { get; set; }
-        public double[] sessionsLows { get; set; }
-
         public Symbol Symbol { get; set; }
 
         public double SlTriggerPrice { get; set; }

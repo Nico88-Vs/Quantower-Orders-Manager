@@ -127,7 +127,6 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             get
             {
                 var total = PositiveOperations + NegativeOperations;
-                Core.Instance.Loggers.Log("NetProfit called", LoggingLevel.Error);
                 if (total == 0) return 0;
                 double avgWin = manager.ClosedItems.Where(i => i.NetProfit > 0).DefaultIfEmpty().Average(i => i?.NetProfit ?? 0);
                 double avgLoss = manager.ClosedItems.Where(i => i.NetProfit <= 0).DefaultIfEmpty().Average(i => i?.NetProfit ?? 0);
