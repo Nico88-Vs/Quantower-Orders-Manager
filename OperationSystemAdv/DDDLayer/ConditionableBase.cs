@@ -1,4 +1,5 @@
 using DivergentStrV0_1.OperationSystemAdv.DDDCore;
+using DivergentStrV0_1.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
     public abstract class ConditionableBase<T> : IConditionable , IDisposable
     {
         protected List<OrderType> _allowedOrdersType;
-        public virtual TpSlManager _manager { get; private set; } = GlobalTpSlManager.Instance;
+        public virtual ManagerDue _manager { get; private set; } = GlobalTpSlManagerDue.Instance;
 
         public virtual PerformanceMetrics Metrics { get; private set; }
 
@@ -240,7 +241,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this._manager?.Dispose();
         }
 
-        private List<SlTpItems> GetActiveGuid()
+        private List<TpSlItems2> GetActiveGuid()
         {
             return _manager.Items.Where(item => RegistredGuid.Contains(item.Id)).ToList(); 
         }
@@ -255,6 +256,11 @@ namespace DivergentStrV0_1.OperationSystemAdv
         /// <param name="tpMarketData">Dati per il calcolo del take profit.</param>
         public virtual void ReversePosition(Side side, double price, T slMarketData, T tpMarketData)
         {
+
+            #region 🐞 BUG [POSSIBILE BUG]
+            // stiamo chiudendo tutto e notificando la chiusura ma nn sappiamo l effettivo stato della posizione ne l esito del ordine di chiusura
+            #endregion
+
             // Chiude tutte le posizioni aperte cancellando gli ordini associati
             foreach (var item in GetActiveGuid())
             {
@@ -276,7 +282,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 };
 
                 // annulla tutti gli ordini collegati alla posizione
-                item.CloseAll();
+                item.Quit();
                 // invia un ordine a mercato per chiudere la posizione
                 Core.Instance.PlaceOrder(closeReq);
             }
@@ -315,7 +321,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //📝 TODO: [MEDIUM] Aggiungere logging per ogni SL/TP update
                 if (isSl)
                 {
-                    foreach (SlTpItems item in GetActiveGuid())
+                    foreach (TpSlItems2 item in GetActiveGuid())
                     {
                         //📝 TODO: [HIGH] Verificare che UpdateSl non lanci NotImplementedException
                         _manager.UpdateSl(item, this.Strategy.UpdateSl(marketData, item));
@@ -323,7 +329,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 }
                 else
                 {
-                    foreach (SlTpItems item in GetActiveGuid())
+                    foreach (TpSlItems2 item in GetActiveGuid())
                     {
                         //📝 TODO: [CRITICAL] UpdateTp attualmente lancia NotImplementedException - fixare
                         _manager.UpdateTp(item, this.Strategy.UpdateTp(marketData, item));

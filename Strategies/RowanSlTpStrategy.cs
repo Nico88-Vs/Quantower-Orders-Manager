@@ -1,4 +1,5 @@
 using DivergentStrV0_1.OperationSystemAdv;
+using DivergentStrV0_1.OperationSystemAdv.DDDCore;
 using DivergentStrV0_1.Utils;
 using System;
 using System.Collections.Generic;
@@ -122,7 +123,7 @@ namespace DivergentStrV0_1.Strategies
             
             return new List<double> { selectedTpItem };
         }
-        public Func<double, double> UpdateSl(SlTpData marketData, SlTpItems item)
+        public Func<double, double> UpdateSl(SlTpData marketData, TpSlItems2 item)
         {
             // TODO: [CRITICAL] LOGICA ERRATA - Deve aggiornare SL basato su previous candle + ATR
             // TODO: [CRITICAL] Implementare: previous_candle_low - (ATR * multiplier) per BUY
@@ -159,8 +160,7 @@ namespace DivergentStrV0_1.Strategies
                 return current_sl => current_sl;
             }
         }
-
-        public Func<double, double> UpdateTp(SlTpData marketData, SlTpItems item)
+        public Func<double, double> UpdateTp(SlTpData marketData, TpSlItems2 item)
         {
             // TODO: [CRITICAL] IMPLEMENTARE - Attualmente lancia NotImplementedException
             // TODO: [HIGH] TP dovrebbe essere fisso al momento dell'entry (non si muove)
@@ -171,7 +171,6 @@ namespace DivergentStrV0_1.Strategies
             //📝 TODO: [LOW] Per ora, restituire TP originale senza modifiche
             
             throw new NotImplementedException();
-            
             //📝 TODO: [CRITICAL] Sostituire con:
             // return current_tp => current_tp; // TP fisso, non si muove
         }

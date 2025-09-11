@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Xml.Linq;
 using TradingPlatform.BusinessLayer;
+using DivergentStrV0_1.OperationSystemAdv.DDDCore;
 
 namespace DivergentStrV0_1.OperationSystemAdv
 {
@@ -29,7 +27,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
     }
 
 
-    public class TpSlManager : IDisposable
+    public class TpSlManager : IDisposable, IPositionManager<SlTpItems>
     {
         #region Properties 
         public List<SlTpItems> Items { get; private set; }
@@ -37,6 +35,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public int TradeCount { get; private set; } = 0;
         private Dictionary<string, List<string>> _itemsDictionary;
         private readonly object _lockObj = new object();
+
+        public event EventHandler QuitAll;
         #endregion
 
         public TpSlManager()
@@ -45,20 +45,22 @@ namespace DivergentStrV0_1.OperationSystemAdv
             ClosedItems = new List<SlTpItems>();
             _itemsDictionary = new Dictionary<string, List<string>>();
 
-            Core.Instance.OrderAdded += this.Instance_OrderAdded;
+            Core.Instance.OrdersHistoryAdded += this.Instance_OrderAdded;
             Core.Instance.TradeAdded += this.Instance_TradeAdded;
         }
 
-        #region Flow
-        public void RevertAll()
-        { 
-            foreach (var item in Items)
-            {
 
-                item.CloseAll();
-            }
-        }
+        #region 🐞 BUG [NOT IMPLEMENTED YET]
+        //public void RevertAll()
+        //{
+        //    foreach (var item in Items)
+        //    {
+
+        //        item.CloseAll();
+        //    }
+        //}
         #endregion
+
 
         #region QTEvents
         private void Instance_TradeAdded(Trade trade)
@@ -90,9 +92,9 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         //TODO: Sarebbe meglio eseguire una verifica di esistenza dell ordine a prescindere dal commento
         //TODO: Logs
-        private void Instance_OrderAdded(Order obj)
+        private void Instance_OrderAdded(OrderHistory obj)
         {
-            if (obj.Status != OrderStatus.Opened || string.IsNullOrEmpty(obj?.Comment) && obj.OriginalStatus != null)
+            if (obj.Status != OrderStatus.Opened || string.IsNullOrEmpty(obj?.Comment))
             {
                 var modifiedKey = _itemsDictionary.FirstOrDefault(kvp => kvp.Value.Contains(obj.Id)).Key;
                 //TODO: A volte e nullo forse perche e stato spostato
@@ -230,7 +232,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         // todo: Crea un metodo che reverta le posizioni aperte , prima chiude tutte quelle aperte e poi le gira nell altro lato    
 
-        public void CloseItem(SlTpItems item)
+        private void CloseItem(SlTpItems item)
         {
             lock (_lockObj)
             {
@@ -247,7 +249,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
-        private void CreateItem(string comment)
+        public void CreateItem(string comment)
         {
             if (!_itemsDictionary.ContainsKey(comment))
             {
@@ -277,7 +279,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             return result;
         }
-        private KeyValuePair<string, OrderTypeSubcomment>? GetSplittedComment(string comment)
+
+        public KeyValuePair<string, OrderTypeSubcomment>? GetSplittedComment(string comment)
         {
             try
             {
@@ -316,7 +319,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             ClosedItems = null;
             _itemsDictionary = null;
 
-            Core.Instance.OrderAdded -= this.Instance_OrderAdded;
+            Core.Instance.OrdersHistoryAdded -= this.Instance_OrderAdded;
             Core.Instance.TradeAdded -= this.Instance_TradeAdded;
         }
         #endregion

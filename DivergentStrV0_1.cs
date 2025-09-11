@@ -118,7 +118,6 @@ namespace DivergentStrV0_1
         }
         protected override void OnRun()
         {
-
             //📝 TODO: [REQUIRED] use settings
 
             this.AtrIndicator = Core.Instance.Indicators.CreateIndicator(Core.Instance.Indicators.All.FirstOrDefault(x => x.Name == "RVOL (evolved)"));

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DivergentStrV0_1.Utils;
+using System;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Reflection;
@@ -32,7 +33,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
     public class PerformanceMetrics
     {
-        private readonly TpSlManager manager = GlobalTpSlManager.Instance;
+        private readonly ManagerDue manager = GlobalTpSlManagerDue.Instance;
 
         #region 📘 REQ [NEXT]
         // TODO: Ottimizzare in futuro con calcolo asincrono o caching.
@@ -92,9 +93,10 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         // todo: genera un metrica che naviga attraverso gli items aperti e verifica l esposizione ritorna ExpositionSide   
         [Metric("Base", "Exposed Side")]
-        public ExpositionSide ExposedSide => manager.Items.Any(x => x.Side == Side.Buy || x.Side == Side.Sell) ? ExpositionSide.Both : 
-            manager.Items.Any(x => x.Side == Side.Buy) ? ExpositionSide.Long : 
-            manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Short : 
+        public ExpositionSide ExposedSide => 
+            manager.Items.Any(x => x.Side == Side.Buy) && manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Both : 
+            manager.Items.Any(x => x.Side == Side.Buy) && !manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Long : 
+            manager.Items.Any(x => x.Side == Side.Sell) && !manager.Items.Any(x => x.Side == Side.Buy) ? ExpositionSide.Short : 
             ExpositionSide.Unexposed;
 
         [Metric("Base", "Exposed Count")]
@@ -181,7 +183,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         #endregion
 
         #region Utility
-        private int GetMaxConsecutive(Func<SlTpItems, bool> condition)
+        private int GetMaxConsecutive(Func<TpSlItems2, bool> condition)
         {
             int max = 0, current = 0;
             foreach (var item in manager.ClosedItems)

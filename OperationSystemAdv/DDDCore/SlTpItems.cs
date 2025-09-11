@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DivergentStrV0_1.OperationSystemAdv.DDDCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TradingPlatform.BusinessLayer;
@@ -18,7 +19,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         Aborted
     }
 
-    public class SlTpItems
+    public class SlTpItems : ITpSlItems
     {
 
         #region 📘 REQ [SYSTEM]
@@ -35,13 +36,16 @@ namespace DivergentStrV0_1.OperationSystemAdv
         //public List<OrderHistory> ExitOrderHistory { get; private set; }
         public List<Trade> EntryTrades { get; private set; }
         public List<Trade> ExitTrades { get; private set; }
-        public List<Order> SlOrders { get; private set; }
-        public List<Order> TpOrders { get; private set; }
+        public List<OrderHistory> SlOrders { get; private set; }
+        public List<OrderHistory> TpOrders { get; private set; }
         public Side Side { get; private set; }
         public Symbol Symbol { get; set; }
         public double GrossProfit { get; private set; } = 0.0;
         public double FilledQuantity { get; private set; } = 0.0;
         public double Fees { get; private set; } = 0.0;
+        public event EventHandler QuitAll;
+        public event EventHandler<PositionManagerStatus[]> ItemClosed;
+
         public double NetProfit
         {
             get
@@ -72,27 +76,30 @@ namespace DivergentStrV0_1.OperationSystemAdv
         }
         public double ClosedQuantity { get; private set; } = 0.0;
         public double Quantity { get; private set; } = 0.0;
+
+        public bool Exposed => throw new NotImplementedException();
+
+        public double ExposedQuantity => throw new NotImplementedException();
+
+        public Position Position => throw new NotImplementedException();
         #endregion
 
         public SlTpItems(string id)
         {
             Id = id;
 
-            SlOrders = new List<Order>();
-            TpOrders = new List<Order>();
+            SlOrders = new List<OrderHistory>();
+            TpOrders = new List<OrderHistory>();
 
             Status = PositionManagerStatus.Created;
 
-            //TODO: Deprecated
-            //EntryOrderHistory = new List<OrderHistory>();
-            //ExitOrderHistory = new List<OrderHistory>();
             Status = PositionManagerStatus.Placed;
             EntryTrades = new List<Trade>();
             ExitTrades = new List<Trade>();
         }
 
         //TODO: Make it Suitable for multiple entry orders
-        public void AttachEntryOrder(Order order)
+        public void AttachEntryOrder(OrderHistory order)
         {
             EntryOrder = order;
             Side = order.Side;
@@ -106,7 +113,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             //TODO: Dispatch
         }
 
-        public void AttachTpOrder(Order order)
+        public void AttachTpOrder(OrderHistory order)
         {
             if (order.Side == Side)
                 return;
@@ -141,7 +148,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
-        public void AttachSlOrder(Order order)
+        public void AttachSlOrder(OrderHistory order)
         {
             if (order.Side == Side)
                 return;
@@ -176,23 +183,6 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //TODO: LOG
             }
         }
-
-
-        #region 🧯 DEPRECATED [NEXT]
-        /*
-         * ⚠️ Questo blocco è inutile
-         * TODO: sostituire o rimuovere
-         */
-
-        //public void AttachHistoryOrder(OrderHistory order)
-        //{
-        //    if (order.Side == Side)
-        //        EntryOrderHistory.Add(order);
-        //    else
-        //        ExitOrderHistory.Add(order);
-        //}
-        #endregion
-
 
         public void RegisterTrade(Trade trade)
         {
@@ -255,7 +245,13 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
             if(this.RemainQuantity != 0)
             {
-                var result = EntryOrder.Cancel(sendingSource:this.ToString());
+                var or = Core.Instance.Orders.FirstOrDefault(x => x.Id == EntryOrder.Id);
+                if (or != null) 
+                {
+                    TradingOperationResult result = or.Cancel(sendingSource:this.ToString());
+                    if (result.Status == TradingOperationResultStatus.Failure)   
+                        this.QuitAll.Invoke(this, EventArgs.Empty);
+                }
 
             }
 
@@ -266,10 +262,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
                     if (Core.Instance.Orders.Any(x => x.Id == item.Id))
                     {
                         var result = Core.Instance.Orders.FirstOrDefault(x => x.Id == item.Id).Cancel(sendingSource: this.ToString());
-                        if (result.Status == TradingOperationResultStatus.Success)
-                        {
-                            //TODO: Logs
-                        }
+                        if (result.Status == TradingOperationResultStatus.Failure)
+                            this.QuitAll.Invoke(this, EventArgs.Empty);
                     }
                         
 
@@ -291,9 +285,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
                     {
                         var result = Core.Instance.Orders.FirstOrDefault(x => x.Id == tpitem.Id).Cancel(sendingSource: this.ToString());
                         if (result.Status == TradingOperationResultStatus.Success)
-                        {
-                            //TODO: Logs
-                        }
+                            if (result.Status == TradingOperationResultStatus.Failure)
+                                this.QuitAll.Invoke(this, EventArgs.Empty);
                     }
                         
 
@@ -314,7 +307,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         {
             try
             {
-                foreach (Order order in TpOrders)
+                foreach (OrderHistory order in TpOrders)
                 {
                     var order_obj = Core.Instance.Orders.FirstOrDefault(x => x.Id == order.Id);
 
@@ -348,7 +341,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         {
             try
             {
-                foreach (Order order in SlOrders)
+                foreach (OrderHistory order in SlOrders)
                 {
                     var order_obj = Core.Instance.Orders.FirstOrDefault(x => x.Id == order.Id);
 
@@ -382,7 +375,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         //HACK: tento l aggiornamento degli ordini conscio di perdere il commento 
         //nasce perchè vengono triggerati eventi multipli d addizione , penso all aggiornamento degli ordini
-        public void UpdateOrders(Order newOrder)
+        public void UpdateOrders(OrderHistory newOrder)
         {
             try
             {
@@ -414,6 +407,21 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //TODO: Logs
                 throw;
             }
+        }
+
+        public void Quit()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void TryUpdateStatus()
+        {
+            throw new NotImplementedException();
+        }
+
+        public TpSlItems2 TryUpdateTrade(Trade trade)
+        {
+            throw new NotImplementedException();
         }
     }
 

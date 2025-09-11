@@ -1,4 +1,5 @@
 using DivergentStrV0_1.OperationSystemAdv;
+using DivergentStrV0_1.OperationSystemAdv.DDDCore;
 using System;
 using System.Collections.Generic;
 using TradingPlatform.BusinessLayer;
@@ -48,13 +49,13 @@ namespace DivergentStrV0_1.Strategies
             return new List<double> { tpPrice };
         }
 
-        public Func<double, double> UpdateSl(double marketData, SlTpItems item)
+        public Func<double, double> UpdateSl(double marketData, TpSlItems2 item)
         {
             // Fixed strategy doesn't update SL dynamically - returns current SL
             return currentSl => currentSl;
         }
 
-        public Func<double, double> UpdateTp(double marketData, SlTpItems item)
+        public Func<double, double> UpdateTp(double marketData, TpSlItems2 item)
         {
             // Fixed strategy doesn't update TP dynamically - returns current TP
             return currentTp => currentTp;

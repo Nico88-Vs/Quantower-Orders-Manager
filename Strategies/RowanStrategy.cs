@@ -218,6 +218,11 @@ namespace DivergentStrV0_1.Strategies
         public override double SetQuantity() => this._totalQuantity / this._maxOpen;
 
         //📝 TODO: [Critical] passare un MarketData object con tutti i dati necessari per le decisioni di trade
+
+        #region 🐞 BUG [RESOLVE]
+        // eXPOSTIONsIDE SEMBRA NN CAMBIARE , FORSE SMETTE DI ESSERE CONTROLLATO UNA VOLTA CHE LA STRATEGIA SI DISATTIVA
+        #endregion
+
         public override void Update(object obj)
         {
 
@@ -241,24 +246,11 @@ namespace DivergentStrV0_1.Strategies
             HistoryItem item = (HistoryItem)e.HistoryItem;
 
             StaticSessionManager.Update(item);
-            try
-            {
-                
-            }
-            catch (Exception ex)
-            {
-                Core.Instance.Loggers.Log($"Rowan Strategy error at Update casting with message : {ex.Message}", LoggingLevel.Error);
-                throw;
-            }
-           
-
-
 
             if (this._loadAsync && !this.HistoryProvider.VolumeDataReady) 
                 return;
 
-            if (!_strategyActive)
-                return;
+            
             try
             {
                 if (!this.AllowToTrade)
@@ -326,10 +318,13 @@ namespace DivergentStrV0_1.Strategies
                         break;
                 }
 
+                if (!_strategyActive)
+                    return;
+
 
                 //📝 TODO: [LOGS] IMPLEMENTARE LOGGING SPECIFICO PER I SEGTNALI
 
-                if(action == TradeAction.Buy || action == TradeAction.Sell)
+                if (action == TradeAction.Buy || action == TradeAction.Sell)
                 {
                     if (this.Metrics.ExposedCount >= _maxOpen)
                         Core.Instance.Loggers.Log($"[TRADE SIGNAL] AVOIDED DUE MAX EXPO REACHED Signal={signal}, Action={action}", LoggingLevel.Trading);
