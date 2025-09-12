@@ -1,14 +1,11 @@
-﻿using DivergentStrV0_1.Utils;
 using System;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 {
-
     public enum ExpositionSide
     {
         Long,
@@ -16,6 +13,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         Both,
         Unexposed
     }
+
     [AttributeUsage(AttributeTargets.Property)]
     public class MetricAttribute : Attribute
     {
@@ -33,101 +31,90 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
     public class PerformanceMetrics
     {
-        private readonly ManagerDue manager = GlobalTpSlManagerDue.Instance;
-
-        #region 📘 REQ [NEXT]
-        // TODO: Ottimizzare in futuro con calcolo asincrono o caching.
-        //TODO: SHARE those metrics with the domain
-        #endregion
+        private IManagerFacade manager;
 
         public bool EnableHeavyMetrics { get; set; }
         public Account Account { get; private set; }
-
-        public void SetPerformanceMetrics(bool enableHavy, string strategyTag, Account account)
-        {
-            this.EnableHeavyMetrics = enableHavy;
-            this.StrategyTag = strategyTag;
-            this.Account = account;
-        }
 
         public PerformanceMetrics()
         {
             this.EnableHeavyMetrics = false;
         }
 
-        #region Properties
+        public void SetPerformanceMetrics(bool enableHeavy, string strategyTag, Account account)
+        {
+            this.EnableHeavyMetrics = enableHeavy;
+            this.StrategyTag = strategyTag;
+            this.Account = account;
+        }
+
+        public void SetAccount(Account account) => this.Account = account;
+        public void SetStrategyTag(string strategyTag) => this.StrategyTag = strategyTag;
+        public void SetManager(IManagerFacade managerFacade) => this.manager = managerFacade;
+
         public string StrategyTag { get; private set; }
 
-        [Metric("System", "Enable Heavy Metrics")]
-        public bool EnableHeavyMetricsFlag => EnableHeavyMetrics;
-
-        [Metric("Meta", "Strategy Tag")]
-        public string StrategyTagDisplay => StrategyTag;
-
-        [Metric("Base", "AccountBalance", "$")]
-        public double AccountBalance => this.Account != null ? this.Account.Balance : 0;
+        [Metric("System", "Enable Heavy Metrics")] public bool EnableHeavyMetricsFlag => EnableHeavyMetrics;
+        [Metric("Meta", "Strategy Tag")] public string StrategyTagDisplay => StrategyTag;
+        [Metric("Base", "AccountBalance", "$")] public double AccountBalance => this.Account != null ? this.Account.Balance : 0;
 
         [Metric("Base", "Net Profit", "$")]
-        public double NetProfit => manager.Items.Sum(i => i.NetProfit) + manager.ClosedItems.Sum(i => i.NetProfit);
+        public double NetProfit => manager == null ? 0 : manager.Items.Sum(i => i.NetProfit) + manager.ClosedItems.Sum(i => i.NetProfit);
 
         [Metric("Base", "Gross Profit", "$")]
-        public double GrossProfit => manager.Items.Sum(i => i.GrossProfit) + manager.ClosedItems.Sum(i => i.GrossProfit);
+        public double GrossProfit => manager == null ? 0 : manager.Items.Sum(i => i.GrossProfit) + manager.ClosedItems.Sum(i => i.GrossProfit);
 
         [Metric("Base", "Fees Paid", "$")]
-        public double PaiedFees => manager.Items.Sum(i => i.Fees) + manager.ClosedItems.Sum(i => i.Fees);
+        public double PaiedFees => manager == null ? 0 : manager.Items.Sum(i => i.Fees) + manager.ClosedItems.Sum(i => i.Fees);
 
         [Metric("Base", "Positive Operations")]
-        public int PositiveOperations => manager.Items.Count(i => i.GrossProfit > 0) + manager.ClosedItems.Count(i => i.GrossProfit > 0);
+        public int PositiveOperations => manager == null ? 0 : manager.Items.Count(i => i.GrossProfit > 0) + manager.ClosedItems.Count(i => i.GrossProfit > 0);
 
         [Metric("Base", "Negative Operations")]
-        public int NegativeOperations => manager.Items.Count(i => i.GrossProfit <= 0) + manager.ClosedItems.Count(i => i.GrossProfit <= 0);
+        public int NegativeOperations => manager == null ? 0 : manager.Items.Count(i => i.GrossProfit <= 0) + manager.ClosedItems.Count(i => i.GrossProfit <= 0);
 
-        [Metric("Base", "Long Count")]
-        public int LongCount => manager.Items.Count(i => i.Side == Side.Buy) + manager.ClosedItems.Count(i => i.Side == Side.Buy);
+        [Metric("Base", "Long Count")] public int LongCount => manager == null ? 0 : manager.Items.Count(i => i.Side == Side.Buy) + manager.ClosedItems.Count(i => i.Side == Side.Buy);
+        [Metric("Base", "Short Count")] public int ShortCount => manager == null ? 0 : manager.Items.Count(i => i.Side == Side.Sell) + manager.ClosedItems.Count(i => i.Side == Side.Sell);
+        [Metric("Base", "Exposed")] public bool Exposed => manager != null && manager.Items.Any();
 
-        [Metric("Base", "Short Count")]
-        public int ShortCount => manager.Items.Count(i => i.Side == Side.Sell) + manager.ClosedItems.Count(i => i.Side == Side.Sell);
-
-        [Metric("Base", "Exposed")]
-        public bool Exposed => manager.Items.Any();
-
-        // todo: genera un metrica che naviga attraverso gli items aperti e verifica l esposizione ritorna ExpositionSide   
         [Metric("Base", "Exposed Side")]
-        public ExpositionSide ExposedSide => 
-            manager.Items.Any(x => x.Side == Side.Buy) && manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Both : 
-            manager.Items.Any(x => x.Side == Side.Buy) && !manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Long : 
-            manager.Items.Any(x => x.Side == Side.Sell) && !manager.Items.Any(x => x.Side == Side.Buy) ? ExpositionSide.Short : 
+        public ExpositionSide ExposedSide => manager == null ? ExpositionSide.Unexposed :
+            manager.Items.Any(x => x.Side == Side.Buy) && manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Both :
+            manager.Items.Any(x => x.Side == Side.Buy) && !manager.Items.Any(x => x.Side == Side.Sell) ? ExpositionSide.Long :
+            manager.Items.Any(x => x.Side == Side.Sell) && !manager.Items.Any(x => x.Side == Side.Buy) ? ExpositionSide.Short :
             ExpositionSide.Unexposed;
 
-        [Metric("Base", "Exposed Count")]
-        public double ExposedCount => manager.Items.Count();
-
-        [Metric("Base", "Exposed Amount")]
-        public double ExposedAmount => manager.Items.Sum(i => i.Quantity - i.ClosedQuantity);
-
-        [Metric("Base", "Trade Count")]
-        public int TradeCount => manager.TradeCount;
+        [Metric("Base", "Exposed Count")] public double ExposedCount => manager == null ? 0 : manager.Items.Count();
+        [Metric("Base", "Exposed Amount")] public double ExposedAmount => manager == null ? 0 : manager.Items.Sum(i => i.Quantity - i.ClosedQuantity);
+        [Metric("Base", "Trade Count")] public int TradeCount => manager == null ? 0 : manager.TradeCount;
 
         [Metric("Performance", "Average Profit/Trade", "$")]
-        public double AverageProfitPerTrade => manager.ClosedItems.Any() ? manager.ClosedItems.Average(i => i.NetProfit) : 0;
+        public double AverageProfitPerTrade => manager != null && manager.ClosedItems.Any() ? manager.ClosedItems.Average(i => i.NetProfit) : 0;
 
         [Metric("Performance", "Average Gross Profit", "$")]
-        public double AverageGrossProfit => manager.ClosedItems.Any() ? manager.ClosedItems.Average(i => i.GrossProfit) : 0;
+        public double AverageGrossProfit => manager != null && manager.ClosedItems.Any() ? manager.ClosedItems.Average(i => i.GrossProfit) : 0;
 
         [Metric("Performance", "Win Rate", "%")]
         public double WinRate => PositiveOperations + NegativeOperations == 0 ? 0 : (double)PositiveOperations / (PositiveOperations + NegativeOperations);
 
         [Metric("Performance", "Profit Factor")]
-        public double ProfitFactor =>
-            manager.ClosedItems.Where(i => i.NetProfit < 0).Sum(i => Math.Abs(i.NetProfit)) is double losses && losses > 0
-                ? manager.ClosedItems.Where(i => i.NetProfit > 0).Sum(i => i.NetProfit) / losses
-                : double.NaN;
+        public double ProfitFactor
+        {
+            get
+            {
+                if (manager == null) return 0;
+                double losses = manager.ClosedItems.Where(i => i.NetProfit < 0).Sum(i => Math.Abs(i.NetProfit));
+                double gains = manager.ClosedItems.Where(i => i.NetProfit > 0).Sum(i => i.NetProfit);
+                return losses > 0 ? gains / losses : 0;
+            }
+        }
 
-        [Metric("Performance", "Expectancy")]
+        [Metric("Performance", "Expectancy", "$")]
         public double Expectancy
         {
             get
             {
+                if (manager == null) return 0;
                 var total = PositiveOperations + NegativeOperations;
                 if (total == 0) return 0;
                 double avgWin = manager.ClosedItems.Where(i => i.NetProfit > 0).DefaultIfEmpty().Average(i => i?.NetProfit ?? 0);
@@ -141,7 +128,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         {
             get
             {
-                if (!EnableHeavyMetrics) return double.NaN;
+                if (!EnableHeavyMetrics || manager == null) return double.NaN;
                 double peak = 0, trough = 0, maxDD = 0, cumulative = 0;
                 foreach (var item in manager.ClosedItems)
                 {
@@ -157,44 +144,23 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             }
         }
 
-        [Metric("Performance", "Max Consecutive Wins")]
-        public int MaxConsecutiveWins => EnableHeavyMetrics ? GetMaxConsecutive(i => i.NetProfit > 0) : -1;
+        [Metric("Performance", "Max Consecutive Wins")] public int MaxConsecutiveWins => EnableHeavyMetrics ? GetMaxConsecutive(i => i.NetProfit > 0) : -1;
+        [Metric("Performance", "Max Consecutive Losses")] public int MaxConsecutiveLosses => EnableHeavyMetrics ? GetMaxConsecutive(i => i.NetProfit <= 0) : -1;
+        [Metric("Performance", "Recovery Factor")] public double RecoveryFactor => EnableHeavyMetrics ? (MaxDrawdown == 0 ? double.NaN : NetProfit / MaxDrawdown) : double.NaN;
+        [Metric("Performance", "Profit StdDev")] public double ProfitStdDev => EnableHeavyMetrics && manager != null && manager.ClosedItems.Count >= 2 ? Math.Sqrt(manager.ClosedItems.Sum(i => Math.Pow(i.NetProfit - AverageProfitPerTrade, 2)) / (manager.ClosedItems.Count - 1)) : double.NaN;
+        [Metric("Performance", "Sharpe Ratio")] public double SharpeRatio => EnableHeavyMetrics && ProfitStdDev != 0 ? AverageProfitPerTrade / ProfitStdDev : double.NaN;
 
-        [Metric("Performance", "Max Consecutive Losses")]
-        public int MaxConsecutiveLosses => EnableHeavyMetrics ? GetMaxConsecutive(i => i.NetProfit <= 0) : -1;
+        [Metric("Exposure", "Max Exposure", "units")] public double MaxExposureAmount => manager != null && manager.Items.Any() ? manager.Items.Max(i => i.Quantity - i.ClosedQuantity) : 0;
+        [Metric("Exposure", "Avg Exposure", "units")] public double AvgExposurePerTrade => manager != null && manager.Items.Any() ? manager.Items.Average(i => i.Quantity - i.ClosedQuantity) : 0;
 
-        [Metric("Performance", "Recovery Factor")]
-        public double RecoveryFactor => EnableHeavyMetrics ? (MaxDrawdown == 0 ? double.NaN : NetProfit / MaxDrawdown) : double.NaN;
-
-        [Metric("Performance", "Profit StdDev")]
-        public double ProfitStdDev =>
-            EnableHeavyMetrics && manager.ClosedItems.Count >= 2
-                ? Math.Sqrt(manager.ClosedItems.Sum(i => Math.Pow(i.NetProfit - AverageProfitPerTrade, 2)) / (manager.ClosedItems.Count - 1))
-                : double.NaN;
-
-        [Metric("Performance", "Sharpe Ratio")]
-        public double SharpeRatio => EnableHeavyMetrics && ProfitStdDev != 0 ? AverageProfitPerTrade / ProfitStdDev : double.NaN;
-
-        [Metric("Exposure", "Max Exposure", "units")]
-        public double MaxExposureAmount => manager.Items.Any() ? manager.Items.Max(i => i.Quantity - i.ClosedQuantity) : 0;
-
-        [Metric("Exposure", "Avg Exposure", "units")]
-        public double AvgExposurePerTrade => manager.Items.Any() ? manager.Items.Average(i => i.Quantity - i.ClosedQuantity) : 0;
-        #endregion
-
-        #region Utility
-        private int GetMaxConsecutive(Func<TpSlItems2, bool> condition)
+        private int GetMaxConsecutive(Func<ITpSlItems, bool> condition)
         {
+            if (manager == null) return 0;
             int max = 0, current = 0;
             foreach (var item in manager.ClosedItems)
             {
-                if (condition(item))
-                    current++;
-                else
-                {
-                    max = Math.Max(max, current);
-                    current = 0;
-                }
+                if (condition(item)) current++;
+                else { max = Math.Max(max, current); current = 0; }
             }
             return Math.Max(max, current);
         }
@@ -211,34 +177,16 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
                 string category = attr.Category?.ToLower().Replace(" ", "_") ?? "general";
                 string unit = string.IsNullOrWhiteSpace(attr.Unit) ? "" : $" ({attr.Unit})";
 
-                // Es: metric_performance_avgprofit
                 string metricName = $"{prefix}{category}_{prop.Name.ToLower()}";
                 string description = $"{category.ToUpper()}: {name}{unit}";
 
                 if (prop.PropertyType == typeof(double))
-                {
                     meter.CreateObservableGauge(metricName, () => (double)prop.GetValue(this), description);
-                }
                 else if (prop.PropertyType == typeof(int))
-                {
                     meter.CreateObservableGauge(metricName, () => (int)prop.GetValue(this), description);
-                }
                 else if (prop.PropertyType == typeof(bool))
-                {
                     meter.CreateObservableGauge(metricName, () => ((bool?)prop.GetValue(this)) == true ? 1 : 0, description);
-                }
             }
         }
-
-        public void SetAccount(Account account)
-        {
-            this.Account = account;
-        }
-
-        public void SetStrategyTag(string strategyTag)
-        {
-            this.StrategyTag = strategyTag;
-        }
-        #endregion
     }
 }

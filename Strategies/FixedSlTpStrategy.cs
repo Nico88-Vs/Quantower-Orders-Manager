@@ -49,13 +49,13 @@ namespace DivergentStrV0_1.Strategies
             return new List<double> { tpPrice };
         }
 
-        public Func<double, double> UpdateSl(double marketData, TpSlItems2 item)
+        public Func<double, double> UpdateSl(double marketData, ITpSlItems item)
         {
             // Fixed strategy doesn't update SL dynamically - returns current SL
             return currentSl => currentSl;
         }
 
-        public Func<double, double> UpdateTp(double marketData, TpSlItems2 item)
+        public Func<double, double> UpdateTp(double marketData, ITpSlItems item)
         {
             // Fixed strategy doesn't update TP dynamically - returns current TP
             return currentTp => currentTp;

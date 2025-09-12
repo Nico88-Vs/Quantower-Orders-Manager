@@ -13,7 +13,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
     public abstract class ConditionableBase<T> : IConditionable , IDisposable
     {
         protected List<OrderType> _allowedOrdersType;
-        public virtual ManagerDue _manager { get; private set; } = GlobalTpSlManagerDue.Instance;
+        public ManagerType ManagerChoice { get; protected set; } = ManagerType.OrdersHistoryBased;
+        public virtual IManagerFacade _manager { get; private set; }
 
         public virtual PerformanceMetrics Metrics { get; private set; }
 
@@ -47,6 +48,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this.RegisterHandlers();
             this._allowedOrdersType = Symbol.GetAlowedOrderTypes(OrderTypeUsage.All).ToList();
             this.Quantity = this.SetQuantity();
+            this._manager = ManagerFacadeFactory.Create(this.ManagerChoice);
+            this.Metrics.SetManager(this._manager);
             this.InitHistoryProvider(req, loadAsync);
 
             this.Initialized = true;
@@ -241,7 +244,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
             this._manager?.Dispose();
         }
 
-        private List<TpSlItems2> GetActiveGuid()
+        private List<ITpSlItems> GetActiveGuid()
         {
             return _manager.Items.Where(item => RegistredGuid.Contains(item.Id)).ToList(); 
         }
@@ -321,7 +324,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //📝 TODO: [MEDIUM] Aggiungere logging per ogni SL/TP update
                 if (isSl)
                 {
-                    foreach (TpSlItems2 item in GetActiveGuid())
+                    foreach (var item in GetActiveGuid())
                     {
                         //📝 TODO: [HIGH] Verificare che UpdateSl non lanci NotImplementedException
                         _manager.UpdateSl(item, this.Strategy.UpdateSl(marketData, item));
@@ -329,7 +332,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 }
                 else
                 {
-                    foreach (TpSlItems2 item in GetActiveGuid())
+                    foreach (var item in GetActiveGuid())
                     {
                         //📝 TODO: [CRITICAL] UpdateTp attualmente lancia NotImplementedException - fixare
                         _manager.UpdateTp(item, this.Strategy.UpdateTp(marketData, item));

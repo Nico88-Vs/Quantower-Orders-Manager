@@ -156,6 +156,7 @@ namespace DivergentStrV0_1.Strategies
 
         public override void Init(HistoryRequestParameters req, Account account, bool loadAsync = false, string description = "", bool allowHeavyMetrics = false)
         {
+            this.ManagerChoice = ManagerType.PositionBased;
             base.Init(req, account, loadAsync, description, allowHeavyMetrics);
             StaticSessionManager.Initialize(this.HistoryProvider);
             StaticSessionManager.TradeSessionsStatusChanged += StaticSessionManager_TradeSessionsStatusChanged;

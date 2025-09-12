@@ -123,7 +123,7 @@ namespace DivergentStrV0_1.Strategies
             
             return new List<double> { selectedTpItem };
         }
-        public Func<double, double> UpdateSl(SlTpData marketData, TpSlItems2 item)
+        public Func<double, double> UpdateSl(SlTpData marketData, ITpSlItems item)
         {
             // TODO: [CRITICAL] LOGICA ERRATA - Deve aggiornare SL basato su previous candle + ATR
             // TODO: [CRITICAL] Implementare: previous_candle_low - (ATR * multiplier) per BUY
@@ -138,7 +138,7 @@ namespace DivergentStrV0_1.Strategies
                 return current_sl =>
                 {
                     // TODO: [CRITICAL] Sostituire questa logica con calcolo basato su previous candle
-                    var delta = item.Symbol.CalculateTicks(current_sl, marketData.currentPrice);
+                    var delta = marketData.Symbol.CalculateTicks(current_sl, marketData.currentPrice);
                     bool isOut = delta > this.delta_InTicks;
 
                     if (!isOut)
@@ -147,8 +147,8 @@ namespace DivergentStrV0_1.Strategies
                     // ramo "isOut": gestisci tutti i casi
                     return item.Side switch
                     {
-                        Side.Buy => item.Symbol.CalculatePrice(marketData.currentPrice, -max_slInTicks),
-                        Side.Sell => item.Symbol.CalculatePrice(marketData.currentPrice, +max_slInTicks),
+                        Side.Buy => marketData.Symbol.CalculatePrice(marketData.currentPrice, -max_slInTicks),
+                        Side.Sell => marketData.Symbol.CalculatePrice(marketData.currentPrice, +max_slInTicks),
                         _ => current_sl // default: evita il buco di ritorno
                     };
                 };
@@ -160,7 +160,7 @@ namespace DivergentStrV0_1.Strategies
                 return current_sl => current_sl;
             }
         }
-        public Func<double, double> UpdateTp(SlTpData marketData, TpSlItems2 item)
+        public Func<double, double> UpdateTp(SlTpData marketData, ITpSlItems item)
         {
             // TODO: [CRITICAL] IMPLEMENTARE - Attualmente lancia NotImplementedException
             // TODO: [HIGH] TP dovrebbe essere fisso al momento dell'entry (non si muove)

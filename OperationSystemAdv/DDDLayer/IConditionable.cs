@@ -1,17 +1,12 @@
 ﻿using DivergentStrV0_1.OperationSystemAdv.DDDCore;
-using DivergentStrV0_1.Utils;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv
 {
     public interface IConditionable
     {
-        protected ManagerDue _manager { get; }
+        public IManagerFacade _manager { get; }
         public PerformanceMetrics Metrics { get; }
         public bool Initialized { get; }
         public Account Account { get; }

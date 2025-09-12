@@ -48,6 +48,8 @@ namespace DivergentStrV0_1.Utils
             Core.Instance.PositionRemoved += Instance_PositionRemoved;
         }
 
+        public override event EventHandler QuitAll;
+
         private void Instance_PositionRemoved(Position obj)
         {
             throw new NotImplementedException();
@@ -415,7 +417,7 @@ namespace DivergentStrV0_1.Utils
 
         private void Item_QuitAll(object? sender, EventArgs e)
         {
-            this.QuitAll?.Invoke(this, EventArgs.Empty);
+            this.QuitAll.Invoke(this, EventArgs.Empty);
         }
 
         private void Item_ItemClosed(object? sender, PositionManagerStatus[] e)

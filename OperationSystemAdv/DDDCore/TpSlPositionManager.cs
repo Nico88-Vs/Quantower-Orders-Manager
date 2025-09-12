@@ -13,6 +13,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         private Symbol _symbol;
         private Account _account;
         private bool _isInitialized = false;
+        public override event EventHandler QuitAll;
 
         public TpSlPositionManager()
         {
@@ -79,12 +80,12 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             throw new NotImplementedException();
         }
 
-        public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
+        public override void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
         {
             if (!_isInitialized)
             {
@@ -160,5 +161,6 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         }
 
         protected override TpSlItemPosition CreateNewItem(string comment) => new TpSlItemPosition(comment);
+
     }
 }

@@ -49,7 +49,10 @@ namespace DivergentStrV0_1.OperationSystemAdv
     public class TpSlManager : PositionManagerBase<SlTpItems>, IDisposable
     {
         #region Properties
-        public override int TradeCount { get; protected set; } = 0;
+        public override int TradeCount { get { return this._tradeCount; } }
+        private int _tradeCount = 0;
+
+        public override event EventHandler QuitAll;
         #endregion
 
         public TpSlManager()
@@ -86,7 +89,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
                 if (match != null)
                 {
-                    TradeCount++;
+                    this._tradeCount++;
                     if (match.Status == PositionManagerStatus.Closed || match.Status == PositionManagerStatus.Aborted)
                     {
                         this.CloseItem(match);
