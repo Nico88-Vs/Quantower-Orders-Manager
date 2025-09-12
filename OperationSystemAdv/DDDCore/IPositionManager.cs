@@ -15,6 +15,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         void UpdateSl(T item, Func<double, double> updateFunction);
         void UpdateTp(T item, Func<double, double> updateFunction);
         protected void CreateItem(string comment);
+        public IPositionManager<T> new();
         protected KeyValuePair<string, OrderTypeSubcomment>? GetSplittedComment(string comment);
     }
 }

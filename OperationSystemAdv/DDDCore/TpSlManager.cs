@@ -26,6 +26,25 @@ namespace DivergentStrV0_1.OperationSystemAdv
         private GlobalTpSlManager() { }
     }
 
+    public sealed class TpSlManagerFactory<T,I> 
+        where T : ITpSlItems 
+        where I : IPositionManager<T>
+    {
+        Type typeParameterType = typeof(T);
+        Type typeParameterType2 = typeof(I);
+        public static I Instance => lazyInstance.Value;
+
+        private static Lazy<I> lazyInstance;
+        public static I CreateInstance()
+        {
+            if (lazyInstance == null)
+            {
+                lazyInstance = new(() => (I)Activator.CreateInstance(typeof(I))!);
+            }
+            return Instance;
+        }
+    }
+
 
     public class TpSlManager : IDisposable, IPositionManager<SlTpItems>
     {
