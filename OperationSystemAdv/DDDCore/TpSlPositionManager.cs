@@ -5,37 +5,25 @@ using TradingPlatform.BusinessLayer;
 
 namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 {
-    public class TpSlPositionManager : IPositionManager<TpSlItemPosition>
+    public class TpSlPositionManager : PositionManagerBase<TpSlItemPosition>
     {
-        public int TradeCount => throw new NotImplementedException();
+        public override int TradeCount => throw new NotImplementedException();
 
-        public List<TpSlItemPosition> Items { get; private set; }
 
-        public List<TpSlItemPosition> ClosedItems { get; private set; }
-
-        public event EventHandler QuitAll;
-
-        private readonly object _lock = new object();
         private Symbol _symbol;
         private Account _account;
         private bool _isInitialized = false;
-        private Dictionary<string, List<string>> _itemsDictionary;
 
         public TpSlPositionManager()
         {
-            Items = new List<TpSlItemPosition>();
-            ClosedItems = new List<TpSlItemPosition>();
-
-            _itemsDictionary = new Dictionary<string, List<string>>();
-
             Core.Instance.PositionAdded += Instance_PositionAdded;
             Core.Instance.ClosedPositionAdded += Instance_ClosedPositionAdded;
-            Core.Instance.OrderAdded += Instance_OrderAdded; ;
+            Core.Instance.OrderAdded += Instance_OrderAdded;
         }
 
         private void Instance_OrderAdded(Order obj)
         {
-            lock (_lock)
+            lock (_lockObj)
             {
                 CatchOrders(obj);
             }
@@ -66,7 +54,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         private void Instance_ClosedPositionAdded(ClosedPosition obj)
         {
-            lock (_lock)
+            lock (_lockObj)
             {
                 if (obj.Symbol == _symbol && obj.Account == _account)
                 {
@@ -82,7 +70,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         private void Instance_PositionAdded(Position obj)
         {
-            lock (_lock)
+            lock (_lockObj)
             {
                 if (obj.Symbol == _symbol && obj.Account == _account)
                 {
@@ -148,24 +136,21 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             }
         }
 
-        public void UpdateSl(TpSlItemPosition item, Func<double, double> updateFunction)
+        public override void UpdateSl(TpSlItemPosition item, Func<double, double> updateFunction)
         {
             throw new NotImplementedException();
         }
 
-        public void UpdateTp(TpSlItemPosition item, Func<double, double> updateFunction)
+        public override void UpdateTp(TpSlItemPosition item, Func<double, double> updateFunction)
         {
             throw new NotImplementedException();
         }
 
-        public void CreateItem(string comment)
+        public override void CreateItem(string comment)
         {
             if (!_itemsDictionary.ContainsKey(comment))
             {
-                var item = new TpSlItemPosition(comment);
-                Items.Add(item);
-                _itemsDictionary.Add(item.Id, new List<string>());
-
+                base.CreateItem(comment);
                 Core.Instance.Loggers.Log($"✅ Creato nuovo SlTpItems con ID: {comment}", LoggingLevel.System);
             }
             else
@@ -174,36 +159,6 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             }
         }
 
-        public KeyValuePair<string, OrderTypeSubcomment>? GetSplittedComment(string comment)
-        {
-            try
-            {
-                var splittedcomment = comment.Split('.');
-
-                if (splittedcomment.Length == 2)
-                {
-                    var success = Enum.TryParse<OrderTypeSubcomment>(splittedcomment[1], out OrderTypeSubcomment type);
-                    if (success)
-                    {
-                        return new KeyValuePair<string, OrderTypeSubcomment>(splittedcomment[0], type);
-                    }
-                    else
-                    {
-                        // TODO: LOGS
-                        return null;
-                    }
-                }
-                else
-                {
-                    // TODO: LOGS
-                    return null;
-                }
-            }
-            catch (Exception)
-            {
-                // TODO: LOGS
-                return null;
-            }
-        }
+        protected override TpSlItemPosition CreateNewItem(string comment) => new TpSlItemPosition(comment);
     }
 }

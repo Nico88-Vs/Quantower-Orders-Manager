@@ -46,24 +46,14 @@ namespace DivergentStrV0_1.OperationSystemAdv
     }
 
 
-    public class TpSlManager : IDisposable, IPositionManager<SlTpItems>
+    public class TpSlManager : PositionManagerBase<SlTpItems>, IDisposable
     {
-        #region Properties 
-        public List<SlTpItems> Items { get; private set; }
-        public List<SlTpItems> ClosedItems { get; private set; }
-        public int TradeCount { get; private set; } = 0;
-        private Dictionary<string, List<string>> _itemsDictionary;
-        private readonly object _lockObj = new object();
-
-        public event EventHandler QuitAll;
+        #region Properties
+        public override int TradeCount { get; protected set; } = 0;
         #endregion
 
         public TpSlManager()
         {
-            Items = new List<SlTpItems>();
-            ClosedItems = new List<SlTpItems>();
-            _itemsDictionary = new Dictionary<string, List<string>>();
-
             Core.Instance.OrdersHistoryAdded += this.Instance_OrderAdded;
             Core.Instance.TradeAdded += this.Instance_TradeAdded;
         }
@@ -183,12 +173,12 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
         #region 📘 REQ [NEXT]
 
-        public void UpdateSl(SlTpItems item, Func<double, double> updateFunction)
+        public override void UpdateSl(SlTpItems item, Func<double, double> updateFunction)
         {
             item.UpdateSlOrders(updateFunction);
         }
 
-        public void UpdateTp(SlTpItems item, Func<double, double> updateFunction)
+        public override void UpdateTp(SlTpItems item, Func<double, double> updateFunction)
         {
             item.UpdateTpOrders(updateFunction);
         }
@@ -207,7 +197,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
         }
 
         // HAndle Dispatcher
-        public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
+        public override void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
         {
             req.Comment = $"{comment}.{OrderTypeSubcomment.Entry.ToString()}";
 
@@ -268,14 +258,11 @@ namespace DivergentStrV0_1.OperationSystemAdv
             }
         }
 
-        public void CreateItem(string comment)
+        public override void CreateItem(string comment)
         {
             if (!_itemsDictionary.ContainsKey(comment))
             {
-                var item = new SlTpItems(comment);
-                Items.Add(item);
-                _itemsDictionary.Add(item.Id, new List<string>());
-
+                base.CreateItem(comment);
                 //TODO: Core.Instance.Loggers.Log($"✅ Creato nuovo SlTpItems con ID: {comment}", LoggingLevel.Info);
             }
             else
@@ -283,6 +270,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
                 //TODO:Core.Instance.Loggers.Log($"⚠️ Item con ID {comment} già esistente, non ricreato.", LoggingLevel.Warning);
             }
         }
+
+        protected override SlTpItems CreateNewItem(string comment) => new SlTpItems(comment);
 
         /// <summary>
         /// Esegue una verifica di esistenza dell'oggetto su entrambe le liste
@@ -299,44 +288,11 @@ namespace DivergentStrV0_1.OperationSystemAdv
             return result;
         }
 
-        public KeyValuePair<string, OrderTypeSubcomment>? GetSplittedComment(string comment)
-        {
-            try
-            {
-                var splittedcomment = comment.Split('.');
-
-                if (splittedcomment.Length == 2)
-                {
-                    var success = Enum.TryParse<OrderTypeSubcomment>(splittedcomment[1], out OrderTypeSubcomment type);
-                    if (success)
-                    {
-                        return new KeyValuePair<string, OrderTypeSubcomment>(splittedcomment[0], type);
-                    }
-                    else
-                    {
-                        // TODO: LOGS
-                        return null;
-                    }
-                }
-                else
-                {
-                    // TODO: LOGS
-                    return null;
-                }
-            }
-            catch (Exception)
-            {
-                // TODO: LOGS
-                return null;
-            }
-        }
-
-        public void Dispose()
+        public override void Dispose()
         {
             //TODO: chiudere tutte le posizioni
             Items = null;
             ClosedItems = null;
-            _itemsDictionary = null;
 
             Core.Instance.OrdersHistoryAdded -= this.Instance_OrderAdded;
             Core.Instance.TradeAdded -= this.Instance_TradeAdded;
