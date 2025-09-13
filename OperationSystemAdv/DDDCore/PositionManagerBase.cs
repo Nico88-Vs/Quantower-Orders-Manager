@@ -17,6 +17,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         public List<T> ClosedItems { get; protected set; }
 
         public abstract event EventHandler QuitAll;
+        public abstract double ExposedAmmount { get; }
 
         public abstract int TradeCount { get; }
 

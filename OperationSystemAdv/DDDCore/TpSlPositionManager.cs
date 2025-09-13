@@ -14,11 +14,20 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         private Account _account;
         private bool _isInitialized = false;
         public override event EventHandler QuitAll;
+        public override double ExposedAmmount
+        {
+            get
+            {
+                #region 🐞 BUG [Bug noto da risolvere #3] 
+                //BUG #3 costruzione ciclica di ordini
+                #endregion
+                return Items.Sum(x => x.EntryOrder.TotalQuantity);
+            }
+        }
 
         public TpSlPositionManager()
         {
             Core.Instance.PositionAdded += Instance_PositionAdded;
-            Core.Instance.ClosedPositionAdded += Instance_ClosedPositionAdded;
             Core.Instance.OrderAdded += Instance_OrderAdded;
 
             #region 🧪 HACK [Soluzione temporanea]
@@ -51,8 +60,10 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
                         {
                             foreach (var i in item)
                             {
-                                this.Items.Remove(i);
-                                this.ClosedItems.Add(i);
+                                //📝 TODO: [Da completare] gestire la chiusura degli ordiri relativo al bug noto di ciclicita di inserimento ordini
+                                //this.Items.Remove(i);
+                                //this.ClosedItems.Add(i);
+                                i.TryUpdateStatus();
                             }
                         }
                     }
@@ -91,27 +102,6 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
                         }
                     }
             }
-        }
-
-        private void Instance_ClosedPositionAdded(ClosedPosition obj)
-        {
-
-            #region 🧪 HACK [Possibile soluzione Definitiva , sposto tutto in Position Removed]
-            //lock (_lockObj)
-            //{
-            //    if (obj.Symbol == _symbol && obj.Account == _account)
-            //    {
-            //        var item = this.Items.FirstOrDefault(x => x.Side == obj.Side && x.Position.Id == obj.Id);
-            //        if (item != null)
-            //        {
-            //            this.Items.Remove(item);
-            //            this.ClosedItems.Add(item);
-            //        }
-            //    }
-            //}
-            #endregion
-
-
         }
 
         private void Instance_PositionAdded(Position obj)
@@ -184,7 +174,8 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
                 #endregion
 
                 var item = this.Items.FirstOrDefault(x => x.Side == pos.Side && x.EntryOrder != null && x.Position == null);
-                item.SetPosition(pos);
+                if (item != null)
+                    item.SetPosition(pos);
             }
             catch (Exception)
             {
@@ -208,6 +199,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             if (!_itemsDictionary.ContainsKey(comment))
             {
                 base.CreateItem(comment);
+                this.Items.Last().ItemClosed += this.TpSlPositionManager_ItemClosed;
                 Core.Instance.Loggers.Log($"✅ Creato nuovo SlTpItems con ID: {comment}", LoggingLevel.System);
             }
             else
@@ -216,6 +208,18 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             }
         }
 
+        private void TpSlPositionManager_ItemClosed(object sender, PositionManagerStatus[] e)
+        {
+            var item = sender as TpSlItemPosition;
+            if (item != null)
+            {
+                item.ItemClosed -= this.TpSlPositionManager_ItemClosed;
+                this.Items.Remove(item);
+                this.ClosedItems.Add(item);
+                Core.Instance.Loggers.Log($"✅ Item con ID {item.Id} chiuso e spostato in ClosedItems.", LoggingLevel.System);
+            }
+
+        }
         protected override TpSlItemPosition CreateNewItem(string comment) => new TpSlItemPosition(comment);
 
     }

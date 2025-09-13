@@ -99,24 +99,38 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             this.Position = position;
         }
 
+
+        #region 🐞 BUG [Bug noto da risolvere #6]
+        //Lo stato non puo aggiornarsi correttamente perche usa proprieta nn tracciate 
+        #endregion
+
         public PositionManagerStatus Status
         {
             get
             {
-                if (this.EntryOrder != null && this.EntryTrades.Count == 0)
+                if (this.EntryOrder != null && this.Position == null)
                     return PositionManagerStatus.Placed;
-                else if (this.EntryOrder != null && this.EntryTrades.Count > 0 && this.Exposed && this.ExitTrades.Count == 0)
-                    if (this.FilledQuantity == this.Quantity)
-                        return PositionManagerStatus.Filled;
+                else if (this.EntryOrder != null && this.Position != null)
+                {
+                    var pos = Core.Instance.Positions.FirstOrDefault(x => x.Id == this.Position.Id);
+                    if (pos != null && pos.Quantity != 0)
+                    {
+                        this.Position = pos;
+                        switch (Core.Instance.Orders.Any(x => x.Id == this.EntryOrder.Id))
+                        {
+                            case true:
+                                this.EntryOrder = Core.Instance.Orders.FirstOrDefault(x => x.Id == this.EntryOrder.Id);
+                                return PositionManagerStatus.PartialyFilled;
+                            case false:
+                                if (pos.Quantity < this.EntryOrder.TotalQuantity)
+                                    return PositionManagerStatus.PartialyClosed;
+                                else
+                                    return PositionManagerStatus.Filled;
+                        }
+                    }
                     else
-                        return PositionManagerStatus.PartialyFilled;
-                else if (this.EntryOrder != null && this.EntryTrades.Count > 0 && this.Exposed && this.ExitTrades.Count > 0)
-                    if (this.ExposedQuantity == 0)
                         return PositionManagerStatus.Closed;
-                    else
-                        return PositionManagerStatus.PartialyClosed;
-                else if (this.EntryOrder != null && this.EntryTrades.Count > 0 && !this.Exposed)
-                    return PositionManagerStatus.Closed;
+                }
                 else
                     return PositionManagerStatus.Created;
             }
@@ -138,7 +152,37 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         public void Quit()
         {
-            throw new NotImplementedException();
+           if (Core.Instance.Positions.Any(x => x.Id == this.Position.Id))
+                Core.Instance.Positions.FirstOrDefault(x => x.Id == this.Position.Id).Close();
+            else 
+                Core.Instance.Loggers.Log($"PositionManager {Id} tried to close a position that is not present anymore in the account", LoggingLevel.Error);
+
+           if (Core.Instance.Orders.Any(x => x.Symbol == this.EntryOrder.Symbol && x.Account == this.EntryOrder.Account))
+           {
+                var ordersToCancel = Core.Instance.Orders.Where(x => x.Symbol == this.EntryOrder.Symbol && x.Account == this.EntryOrder.Account).ToList();
+                foreach (var order in ordersToCancel)
+                    order.Cancel();
+           }
+           else
+                Core.Instance.Loggers.Log($"PositionManager {Id} tried to cancel orders that are not present anymore in the account", LoggingLevel.Error);
+        }
+
+        public void TryUpdateStatus(bool force = false)
+        {
+            var oldStatus = _status;
+            _status = this.Status;
+
+
+            if (oldStatus != _status || force)
+            {
+                Core.Instance.Loggers.Log($"PositionManager {Id} status changed to {_status}", LoggingLevel.Trading);
+                if (_status == PositionManagerStatus.Closed || force)
+                {
+                    this.Quit();
+                    ItemClosed?.Invoke(this, new PositionManagerStatus[2] { oldStatus, _status });
+                }
+
+            }
         }
 
         public void TryUpdateStatus()

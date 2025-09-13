@@ -33,54 +33,6 @@ namespace DivergentStrV0_1.Strategies
 
     internal class RowanStrategy : ConditionableBase<SlTpData>
     {
-        #region ToDo
-        //📝 TODO: [CRITICAL] Creare le sessioni di trading con conversione EST e gestione DST
-        //📝 TODO: [CRITICAL] Implementare calcolo RVOL con smoothing HMA
-        //📝 TODO: [CRITICAL] Implementare calcolo Volume Delta ratios (APAVD/CPVD)
-        //📝 TODO: [CRITICAL] Implementare Volume Delta Strength calculation
-        //📝 TODO: [CRITICAL] Implementare Custom HMA con lunghezza divisa per ATR
-        //📝 TODO: [CRITICAL] Implementare Volume Delta to Volume ratio
-        //📝 TODO: [CRITICAL] Implementare Volume Delta divergence detection
-        //📝 TODO: [CRITICAL] Manca Lo Slipage basato su ATR?
-        //📝 TODO: [HIGH] Aggiungere parametri configurabili per tutti gli indicatori
-        //📝 TODO: [HIGH] Implementare sistema di selezione parametri attivi per entry/exit
-
-        //📝 TODO: [MEDIUM] load async disabilitato - valutare se riabilitare per performance
-        //📝 TODO: [HIGH] Implementare inizializzazione completa degli indicatori
-        //📝 TODO: [HIGH] Configurare parametri di lookback per tutti i calcoli
-        //📝 TODO: [MEDIUM] Aggiungere validazione dei parametri di input
-        //📝 TODO: [HIGH] Implementare logging completo per session status changes
-        //📝 TODO: [CRITICAL] Fixare: Non Funziona se viene riavviata la strategia durante la sessione
-        //📝 TODO: [HIGH] Implementare recovery logic per restart durante sessione attiva
-        //📝 TODO: [MEDIUM] Salvare stato sessione su storage persistente
-        //📝 TODO: [CRITICAL] Implementare calcolo di tutti gli indicatori per la candela corrente
-        //📝 TODO: [CRITICAL] Calcolare RVOL smoothed = (RvolShort + RvolLong + HMA)/3
-        //📝 TODO: [CRITICAL] Calcolare Average Price Move to Volume Delta ratio
-        //📝 TODO: [CRITICAL] Calcolare Volume Delta Strength con soglie configurabili
-        //📝 TODO: [CRITICAL] Calcolare Custom HMA con length/ATR
-        //📝 TODO: [CRITICAL] Calcolare Volume Delta to Volume ratio
-        //📝 TODO: [CRITICAL] Rilevare Volume Delta divergence da price movement
-
-        //📝 TODO: [CRITICAL] Implementare logica di entry signals
-        //📝 TODO: [CRITICAL] Verificare che almeno X parametri su N selezionati siano true per entry
-        //📝 TODO: [CRITICAL] Verificare che siamo dentro le time frames selezionate
-        //📝 TODO: [CRITICAL] Implementare entry per BUY quando longokay conditions sono soddisfatte
-        //📝 TODO: [CRITICAL] Implementare entry per SELL quando shortokay conditions sono soddisfatte
-
-        //📝 TODO: [CRITICAL] Implementare logica di exit signals
-        //📝 TODO: [CRITICAL] Verificare che almeno Y parametri su M selezionati siano true per exit
-        //📝 TODO: [CRITICAL] Chiudere posizioni quando usciamo dalle time frames selezionate
-        //📝 TODO: [CRITICAL] Implementare position reversal sulla stessa candela
-
-        //📝 TODO: [HIGH] Implementare order stacking se abilitato
-        //📝 TODO: [HIGH] Verificare max loss limit prima di ogni trade
-        //📝 TODO: [HIGH] Implementare slippage calculation basato su ATR
-
-        //📝 TODO: [MEDIUM] Aggiungere logging dettagliato ogni 3 candele
-        //📝 TODO: [MEDIUM] Loggare valori correnti di tutti i parametri
-        //📝 TODO: [MEDIUM] Loggare closest high/low TP points
-        //📝 TODO: [MEDIUM] Loggare previous candle max/min + ATR values
-        #endregion
 
         #region === TRADABLE SESSIONS (UTC) ===
         // Sessione 1
@@ -220,8 +172,8 @@ namespace DivergentStrV0_1.Strategies
 
         //📝 TODO: [Critical] passare un MarketData object con tutti i dati necessari per le decisioni di trade
 
-        #region 🐞 BUG [RESOLVE]
-        // eXPOSTIONsIDE SEMBRA NN CAMBIARE , FORSE SMETTE DI ESSERE CONTROLLATO UNA VOLTA CHE LA STRATEGIA SI DISATTIVA
+        #region 🐞 BUG [Bug noto da risolvere #5] 
+        //BUG #5 vengono aperti short mentre la strategia e long 
         #endregion
 
         public override void Update(object obj)
@@ -240,6 +192,11 @@ namespace DivergentStrV0_1.Strategies
                 Core.Instance.Loggers.Log("Rowan Strategy error at Update casting", LoggingLevel.Error);
                 Core.Instance.Loggers.Log("Strategy Will be Disabled", LoggingLevel.Error);
                 this.ForceClosePositions(5);
+
+                #region 🐞 BUG [Bug noto da risolvere]
+                //BUG #4
+                #endregion
+
                 this._strategyActive = false;
                 return;
             }
@@ -307,9 +264,15 @@ namespace DivergentStrV0_1.Strategies
                             action = TradeAction.Sell;
                         break;
                     case ExpositionSide.Both:
+                        #region 🐞 BUG [Bug noto da risolvere #4] 
+                        //BUG #4 Strategy active non cambia 
+                        #endregion
+                        #region 🐞 BUG [Bug noto da risolvere #5] 
+                        //BUG #5 La strategia si ritrova esposta su entrambi i lati 
+                        #endregion
                         Core.Instance.Loggers.Log("Exposed on Both Sides positions ll be closed and strategy aborted", LoggingLevel.Trading);
                         this.ForceClosePositions(5);
-                        this._strategyActive = false;
+                        //this._strategyActive = false;
                         break;
                     case ExpositionSide.Unexposed:
                         if (signal == TradeSignal.OpenBuy)
@@ -319,6 +282,10 @@ namespace DivergentStrV0_1.Strategies
                         break;
                 }
 
+
+                #region 🐞 BUG [Bug noto da risolvere #4] 
+                //BUG #4 Strategy active non cambia 
+                #endregion
                 if (!_strategyActive)
                     return;
 
@@ -327,7 +294,13 @@ namespace DivergentStrV0_1.Strategies
 
                 if (action == TradeAction.Buy || action == TradeAction.Sell)
                 {
-                    if (this.Metrics.ExposedCount >= _maxOpen)
+
+                    //🧠 HINT: [Suggerimento di flusso] il sistema continua ad aprire e chiudere items per mantenere il conto dell esposizione coerente 
+                    //🧠 HINT: [Da Verificare ] Gli Ordini per gli item chiusi vengono rimossi
+                    //🧠 HINT: [Da Verificare ] La conversione sulle quantita
+
+                    //if (this.Metrics.ExposedCount >= _maxOpen)
+                    if (this.Metrics.ExposedAmount >= _maxOpen*this.Quantity)
                         Core.Instance.Loggers.Log($"[TRADE SIGNAL] AVOIDED DUE MAX EXPO REACHED Signal={signal}, Action={action}", LoggingLevel.Trading);
                     else
                     {
@@ -348,6 +321,9 @@ namespace DivergentStrV0_1.Strategies
                     else
                     {
                         Core.Instance.Loggers.Log($"[TRADE SIGNAL] FAILED TO CLOSE POSITIONS, STRATEGY STOPPED Signal={signal}, Action={action}", LoggingLevel.Error);
+                        #region 🐞 BUG [Bug noto da risolvere #4] 
+                        //BUG #4 Strategy active non cambia 
+                        #endregion
                         this._strategyActive = false;
                     }
                 }
@@ -365,17 +341,12 @@ namespace DivergentStrV0_1.Strategies
                     else
                     {
                         Core.Instance.Loggers.Log($"[TRADE SIGNAL] FAILED TO CLOSE POSITIONS FOR REVERSAL, STRATEGY STOPPED Signal={signal}, Action={action}", LoggingLevel.Error);
+                        #region 🐞 BUG [Bug noto da risolvere #4] 
+                        //BUG #4 Strategy active non cambia 
+                        #endregion
                         this._strategyActive = false;
                     }
                 }
-
-                #region 🐞 BUG [FLOW] #3
-                //arrivano commenti nulli al order update
-                //if (action == TradeAction.Wait)
-                //    this.UpdateSlTp(marketData, true);
-                #endregion
-
-
 
                 if (this._verbosityFreqCount <= this._verbosityFreq)
                 {
@@ -405,48 +376,65 @@ namespace DivergentStrV0_1.Strategies
 
         private bool ForceClosePositions(int max_attempt)
         {
-            int attempt = 0;
-            var positions = Core.Instance.Positions.Where(p => p.Symbol == this.Symbol && p.Account == this.Account).ToList();
+            //int attempt = 0;
+            //var positions = Core.Instance.Positions.Where(p => p.Symbol == this.Symbol && p.Account == this.Account).ToList();
 
-            foreach (var pos in positions)
-                pos.Close();
+            //foreach (var pos in positions)
+            //    pos.Close();
 
-            while (Core.Instance.Positions.Where(p => p.Symbol == this.Symbol && p.Account == this.Account).Any() && attempt < max_attempt)
+            ////bool any = Core.Instance.Positions.Where(p => p.Symbol == this.Symbol && p.Account == this.Account).Any();
+
+            ////while (any && attempt < max_attempt)
+            ////{
+            ////    any = Core.Instance.Positions.Where(p => p.Symbol == this.Symbol && p.Account == this.Account).Any();
+            ////    //📝 TODO: [Debug Required] check if items closed
+
+            ////    System.Threading.Thread.Sleep(500);
+            ////    attempt++;
+
+            ////    if (attempt >= max_attempt && any)
+            ////    {
+            ////        Core.Instance.Loggers.Log($"[CRITICAL] Unable to close all positions after {max_attempt} attempts!", LoggingLevel.Trading);
+            ////        return false;
+            ////    }
+            ////}
+
+            //attempt = 0;
+
+            //var orders = Core.Instance.Orders.Where(o => o.Symbol == this.Symbol && o.Account == this.Account &&
+            //o.Status == OrderStatus.Opened || o.Status == OrderStatus.PartiallyFilled).ToList();
+
+            //foreach (Order ord in orders)
+            //    ord.Cancel();
+
+            ////while (Core.Instance.Orders.Where(o => o.Symbol == this.Symbol && o.Account == this.Account &&
+            ////    o.Status == OrderStatus.Opened || o.Status == OrderStatus.PartiallyFilled).Any() && attempt < max_attempt)
+            ////{
+            ////    //📝 TODO: [Debug Required] check if items closed
+
+            ////    System.Threading.Thread.Sleep(500);
+            ////    attempt++;
+
+            ////    if (attempt >= max_attempt)
+            ////    {
+            ////        Core.Instance.Loggers.Log($"[CRITICAL] Unable to cancel orders {max_attempt} attempts!", LoggingLevel.Trading);
+            ////        return false;
+            ////    }
+            ////}
+
+            //return true;
+            var posId = Core.Instance.Positions.Where(p => p.Symbol == this.Symbol && p.Account == this.Account)
+                .Select(p => p.Id).ToList();
+            var objs = this._manager.Items.Where(x => x.Position != null && posId.Contains(x.Position.Id)).ToList();
+            foreach (var obj in objs)
             {
 
-                //📝 TODO: [Debug Required] check if items closed
+                #region 🧪 HACK [Soluzione temporanea]
+                //Sistemare questa porcheria
+                #endregion
 
-                System.Threading.Thread.Sleep(500);
-                attempt++;
-
-                if (attempt >= max_attempt)
-                {
-                    Core.Instance.Loggers.Log($"[CRITICAL] Unable to close all positions after {max_attempt} attempts!", LoggingLevel.Trading);
-                    return false;
-                }
-            }
-
-            attempt = 0;
-
-            var orders = Core.Instance.Orders.Where(o => o.Symbol == this.Symbol && o.Account == this.Account &&
-            o.Status == OrderStatus.Opened || o.Status == OrderStatus.PartiallyFilled).ToList();
-
-            foreach (Order ord in orders)
-                ord.Cancel();
-
-            while (Core.Instance.Orders.Where(o => o.Symbol == this.Symbol && o.Account == this.Account &&
-                o.Status == OrderStatus.Opened || o.Status == OrderStatus.PartiallyFilled).Any() && attempt < max_attempt)
-            {
-                //📝 TODO: [Debug Required] check if items closed
-
-                System.Threading.Thread.Sleep(500);
-                attempt++;
-
-                if (attempt >= max_attempt)
-                {
-                    Core.Instance.Loggers.Log($"[CRITICAL] Unable to cancel orders {max_attempt} attempts!", LoggingLevel.Trading);
-                    return false;
-                }
+                var o = obj as TpSlItemPosition;
+                o.TryUpdateStatus(true);
             }
 
             return true;
@@ -461,15 +449,15 @@ namespace DivergentStrV0_1.Strategies
 
                 #region 🐞 BUG [RESOLVE] #2
                 //TUTTE LE LINESERIES RITORNANO NAN PER OGNI VALORE AD OGNI INDICE
-                var debug1 = sign.GetValue(1);
-                var debug2 = sign.GetValue(2);
-                var debug3 = sign.GetValue() == 0;
-                for (int i = 0; i < this._deltaBaseIndicator.Count; i++)
-                {
-                    if (sign[i] >= 0)
-                        Core.Instance.Loggers.Log($"DeltaBaseIndicator {sign.Name} value at {i} is {sign[i]}", LoggingLevel.Trading);
-                }
-                var debug4 = this._deltaBaseIndicator.HistoricalData;
+                //var debug1 = sign.GetValue(1);
+                //var debug2 = sign.GetValue(2);
+                //var debug3 = sign.GetValue() == 0;
+                //for (int i = 0; i < this._deltaBaseIndicator.Count; i++)
+                //{
+                //    if (sign[i] >= 0)
+                //        Core.Instance.Loggers.Log($"DeltaBaseIndicator {sign.Name} value at {i} is {sign[i]}", LoggingLevel.Trading);
+                //}
+                //var debug4 = this._deltaBaseIndicator.HistoricalData;
                 #endregion
 
 
@@ -493,7 +481,7 @@ namespace DivergentStrV0_1.Strategies
                 if (logSignCount >= this._minTradeSign)
                     
                     return TradeSignal.OpenBuy;
-                else if (shortSignCount >= this._minCloseSign)
+                else if (logSignCount >= this._minCloseSign)
                     return TradeSignal.CloseSell;
                 else                     
                     return TradeSignal.Wait;

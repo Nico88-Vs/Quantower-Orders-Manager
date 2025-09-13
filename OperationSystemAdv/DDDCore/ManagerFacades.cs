@@ -17,6 +17,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
     {
         IReadOnlyList<ITpSlItems> Items { get; }
         IReadOnlyList<ITpSlItems> ClosedItems { get; }
+        public double ExposedAmmount { get; }
         int TradeCount { get; }
 
         void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment,
@@ -37,6 +38,8 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         public IReadOnlyList<ITpSlItems> Items => _inner.Items.Cast<ITpSlItems>().ToList();
         public IReadOnlyList<ITpSlItems> ClosedItems => _inner.ClosedItems.Cast<ITpSlItems>().ToList();
         public int TradeCount => _inner.TradeCount;
+
+        public double ExposedAmmount => _inner.ExposedAmmount;
 
         public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
             => _inner.PlaceEntryOrder(req, comment, sl, tp, sender);
@@ -60,6 +63,8 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         public IReadOnlyList<ITpSlItems> Items => _inner.Items.Cast<ITpSlItems>().ToList();
         public IReadOnlyList<ITpSlItems> ClosedItems => _inner.ClosedItems.Cast<ITpSlItems>().ToList();
+        public double ExposedAmmount => _inner.ExposedAmmount;
+
         public int TradeCount => _inner.TradeCount;
 
         public void PlaceEntryOrder(PlaceOrderRequestParameters req, string comment, List<PlaceOrderRequestParameters> sl, List<PlaceOrderRequestParameters> tp, object sender = null)
@@ -81,6 +86,8 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         {
             _inner = inner;
         }
+
+        public double ExposedAmmount => _inner.ExposedAmmount;
 
         public IReadOnlyList<ITpSlItems> Items => _inner.Items.Cast<ITpSlItems>().ToList();
         public IReadOnlyList<ITpSlItems> ClosedItems => _inner.ClosedItems.Cast<ITpSlItems>().ToList();

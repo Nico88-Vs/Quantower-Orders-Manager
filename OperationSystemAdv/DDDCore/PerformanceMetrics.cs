@@ -85,7 +85,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             ExpositionSide.Unexposed;
 
         [Metric("Base", "Exposed Count")] public double ExposedCount => manager == null ? 0 : manager.Items.Count();
-        [Metric("Base", "Exposed Amount")] public double ExposedAmount => manager == null ? 0 : manager.Items.Sum(i => i.Quantity - i.ClosedQuantity);
+        [Metric("Base", "Exposed Amount")] public double ExposedAmount => manager == null ? 0 : manager.ExposedAmmount;
         [Metric("Base", "Trade Count")] public int TradeCount => manager == null ? 0 : manager.TradeCount;
 
         [Metric("Performance", "Average Profit/Trade", "$")]

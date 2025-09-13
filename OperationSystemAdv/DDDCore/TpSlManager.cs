@@ -51,6 +51,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
         #region Properties
         public override int TradeCount { get { return this._tradeCount; } }
         private int _tradeCount = 0;
+        public override double ExposedAmmount => throw new NotImplementedException();
+
 
         public override event EventHandler QuitAll;
         #endregion

@@ -146,7 +146,7 @@ namespace DivergentStrV0_1
                 foreach (var sv in InMarketUtc.Build())
                     StaticSessionManager.AddSession(sv, Utils.SessionType.Trade);
 
-                this._strategy = new RowanStrategy(this.DeltaIndicato, this.AtrIndicator, 3, 1000, 2, 1, 100, 3);
+                this._strategy = new RowanStrategy(this.DeltaIndicato, this.AtrIndicator, 3, 10000, 2, 1, 100, 3);
                 this._strategy.InjectStrategy(new RowanSlTpStrategy(100,500));
                 this._strategy.Init(req, this._Account, true);
                 this._conditionable = _strategy;
@@ -512,15 +512,19 @@ namespace DivergentStrV0_1
         {
             base.OnInitializeMetrics(meter);
 
-            try
-            {
-                this._conditionable.Metrics.ExportToMeter(meter);
-            }
-            catch (Exception)
-            {
+            meter.CreateObservableGauge("DivergentStrV0_1_HistoryLoadProgress", () => this._Account.Balance, "percent", "History Load Progress %");
+            meter.CreateObservableGauge("DivergentStrV0_1_HistoryLoadProgress", () => this._conditionable.Metrics.AccountBalance, "percent", "Trade Count");
+            meter.CreateObservableGauge("DivergentStrV0_1_HistoryLoadProgress", () => this._conditionable.Metrics.ExposedAmount, "absolute", "ExposedAmmount");
 
-                throw;
-            }
+            //try
+            //{
+            //    this._conditionable.Metrics.ExportToMeter(meter);
+            //}
+            //catch (Exception)
+            //{
+
+            //    throw;
+            //}
         }
     }
 }

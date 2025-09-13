@@ -26,6 +26,8 @@ namespace DivergentStrV0_1.Utils
     public class ManagerDue : PositionManagerBase<TpSlItems2>, IDisposable
     {
         #region Properties
+
+        public override double ExposedAmmount => throw new NotImplementedException();
         public override int TradeCount
         {
             get
