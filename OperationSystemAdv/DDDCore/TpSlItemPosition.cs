@@ -46,7 +46,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             get 
             { 
                 return this.EntryOrder != null ? Core.Instance.Orders.FirstOrDefault(x => x.Id == this.EntryOrder.Id).FilledQuantity : 
-                    this.Position != null && this.Position.Quantity > 0 ? this.Position.Quantity : 0;
+                    this.Position != null && Math.Abs(this.Position.Quantity) > 0 ? Math.Abs(this.Position.Quantity) : 0;
             }
         }
 
@@ -67,8 +67,13 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         {
             get
             {
+
+                #region 🧪 HACK [Soluzione temporanea]
+                // evito i NetPnl nulli tentando di capire se sono loro a lanciare un eccezzione che cancella gli ordini
+                #endregion
+
                 if (this.Position != null)
-                    return this.Position.NetPnL.Value;
+                   return this.Position.NetPnL != null ? this.Position.NetPnL.Value : 0;
                 else
                     return 0;
             }

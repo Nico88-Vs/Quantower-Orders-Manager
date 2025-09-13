@@ -80,3 +80,13 @@ E:\Rowan_Prj\OrderManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.dl
 E:\Rowan_Prj\OrderManager\Quantower-Orders-Manager\obj\Debug\refint\DivergentStrV0_1.dll
 E:\Rowan_Prj\OrderManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.pdb
 E:\Rowan_Prj\OrderManager\Quantower-Orders-Manager\obj\Debug\ref\DivergentStrV0_1.dll
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.csproj.AssemblyReference.cache
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.AssemblyInfoInputs.cache
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.AssemblyInfo.cs
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.csproj.CoreCompileInputs.cache
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0-1.sourcelink.json
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.dll
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\refint\DivergentStrV0_1.dll
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\DivergentStrV0_1.pdb
+C:\Users\tagli\Desktop\Repo\Rowan\RowanOrdersManager\Quantower-Orders-Manager\obj\Debug\ref\DivergentStrV0_1.dll

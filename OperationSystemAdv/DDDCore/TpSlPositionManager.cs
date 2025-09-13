@@ -20,6 +20,46 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
             Core.Instance.PositionAdded += Instance_PositionAdded;
             Core.Instance.ClosedPositionAdded += Instance_ClosedPositionAdded;
             Core.Instance.OrderAdded += Instance_OrderAdded;
+
+            #region 🧪 HACK [Soluzione temporanea]
+            // Controllo lo stato degli altri eventi Qt
+            Core.Instance.OrderRemoved += (e) =>
+            {
+                Order order = e as Order;
+            };
+
+            Core.Instance.PositionRemoved += (obj) =>
+            {
+
+                #region 🧪 HACK [Possibile bug fix]
+                // SDpostato da position removed 
+                // Elimino tutti gli item correlati
+                #endregion
+
+
+                #region 🐞 BUG [Bug noto da risolvere]
+                //Il processo di rimozione viene interrotto dagli eventi qt , provo a rimuovere il lock
+                #endregion
+
+
+                //lock (_lockObj)
+                //{
+                    if (obj.Symbol == _symbol && obj.Account == _account)
+                    {
+                        var item = this.Items.Where(x => x.Side == obj.Side && x.Position.Id == obj.Id);
+                        if (item.Any())
+                        {
+                            foreach (var i in item)
+                            {
+                                this.Items.Remove(i);
+                                this.ClosedItems.Add(i);
+                            }
+                        }
+                    }
+                //}
+            };
+            #endregion
+
         }
 
         private void Instance_OrderAdded(Order obj)
@@ -55,18 +95,23 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         private void Instance_ClosedPositionAdded(ClosedPosition obj)
         {
-            lock (_lockObj)
-            {
-                if (obj.Symbol == _symbol && obj.Account == _account)
-                {
-                    var item = this.Items.FirstOrDefault(x => x.Side == obj.Side && x.Position.Id == obj.Id);
-                    if (item != null)
-                    {
-                        this.Items.Remove(item);
-                        this.ClosedItems.Add(item);
-                    }
-                }
-            }
+
+            #region 🧪 HACK [Possibile soluzione Definitiva , sposto tutto in Position Removed]
+            //lock (_lockObj)
+            //{
+            //    if (obj.Symbol == _symbol && obj.Account == _account)
+            //    {
+            //        var item = this.Items.FirstOrDefault(x => x.Side == obj.Side && x.Position.Id == obj.Id);
+            //        if (item != null)
+            //        {
+            //            this.Items.Remove(item);
+            //            this.ClosedItems.Add(item);
+            //        }
+            //    }
+            //}
+            #endregion
+
+
         }
 
         private void Instance_PositionAdded(Position obj)
@@ -92,29 +137,35 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
                 this._symbol = req.Symbol;
                 this._account = req.Account;
                 this._isInitialized = true;
-
-                PlaceOrderRequestParameters orderobj = req;
-                orderobj.Comment = $"{comment}.{OrderTypeSubcomment.Entry.ToString()}";
-
-                foreach (var item in sl)
-                {
-                    var slobj = SlTpHolder.CreateSL(item.Price);
-                    orderobj.StopLossItems.Add(slobj);
-                }
-
-                foreach (var item in tp)
-                {
-                    var tpobj = SlTpHolder.CreateTP(item.Price);
-                    orderobj.TakeProfitItems.Add(tpobj);
-                }
-
-                var result = Core.Instance.PlaceOrder(orderobj);
-
-                if ( result.Status == TradingOperationResultStatus.Success)
-                    Core.Instance.Loggers.Log($"✅ Entry order placed successfully with comment: {orderobj.Comment}", LoggingLevel.System);
-                else
-                    Core.Instance.Loggers.Log($"❌ Failed to place entry order with comment: {orderobj.Comment}. Reason: {result.Message}", LoggingLevel.Error);
             }
+
+
+            #region 🐞 BUG [Bug noto da risolvere]
+            // BUG Vengono eseguiti ingressi multipli anche se gli item sono gia registrati 
+            #endregion
+
+
+            PlaceOrderRequestParameters orderobj = req;
+            orderobj.Comment = $"{comment}.{OrderTypeSubcomment.Entry.ToString()}";
+
+            foreach (var item in sl)
+            {
+                var slobj = SlTpHolder.CreateSL(item.Price);
+                orderobj.StopLossItems.Add(slobj);
+            }
+
+            foreach (var item in tp)
+            {
+                var tpobj = SlTpHolder.CreateTP(item.Price);
+                orderobj.TakeProfitItems.Add(tpobj);
+            }
+
+            var result = Core.Instance.PlaceOrder(orderobj);
+
+            if ( result.Status == TradingOperationResultStatus.Success)
+                Core.Instance.Loggers.Log($"✅ Entry order placed successfully with comment: {orderobj.Comment}", LoggingLevel.System);
+            else
+                Core.Instance.Loggers.Log($"❌ Failed to place entry order with comment: {orderobj.Comment}. Reason: {result.Message}", LoggingLevel.Error);
 
             if (!this._isInitialized)
             {
@@ -127,6 +178,11 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         {
             try
             {
+
+                #region 🐞 BUG [possibile bug]
+                //null exeption
+                #endregion
+
                 var item = this.Items.FirstOrDefault(x => x.Side == pos.Side && x.EntryOrder != null && x.Position == null);
                 item.SetPosition(pos);
             }

@@ -491,6 +491,7 @@ namespace DivergentStrV0_1.Strategies
                 return TradeSignal.Unknown;
             else if (logSignCount > shortSignCount)
                 if (logSignCount >= this._minTradeSign)
+                    
                     return TradeSignal.OpenBuy;
                 else if (shortSignCount >= this._minCloseSign)
                     return TradeSignal.CloseSell;

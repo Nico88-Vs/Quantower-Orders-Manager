@@ -146,7 +146,7 @@ namespace DivergentStrV0_1
                 foreach (var sv in InMarketUtc.Build())
                     StaticSessionManager.AddSession(sv, Utils.SessionType.Trade);
 
-                this._strategy = new RowanStrategy(this.DeltaIndicato, this.AtrIndicator, 3, 1000, 3, 2, 100, 3);
+                this._strategy = new RowanStrategy(this.DeltaIndicato, this.AtrIndicator, 3, 1000, 2, 1, 100, 3);
                 this._strategy.InjectStrategy(new RowanSlTpStrategy(100,500));
                 this._strategy.Init(req, this._Account, true);
                 this._conditionable = _strategy;
