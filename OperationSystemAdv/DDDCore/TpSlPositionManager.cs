@@ -18,10 +18,25 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
         {
             get
             {
-                #region 🐞 BUG [Bug noto da risolvere #3] 
-                //BUG #3 costruzione ciclica di ordini
-                #endregion
-                return Items.Sum(x => x.EntryOrder.TotalQuantity);
+                try
+                {
+                    return Items.Sum(x => x.EntryOrder.TotalQuantity);
+
+                }
+                catch (Exception)
+                {
+
+                    var ammount = 0.0;
+
+                    var orders = Core.Instance.Orders.Where(x => x.Symbol == _symbol && x.Account == _account && x.AdditionalInfo == null
+                        && (x.Status == OrderStatus.Opened || x.Status == OrderStatus.PartiallyFilled));
+
+                    ammount += orders.Sum(x =>  x.RemainingQuantity);
+
+                    ammount += Core.Instance.Positions.Where(x => x.Symbol == _symbol && x.Account == _account).Sum(x => x.Quantity);
+
+                    return ammount;
+                }
             }
         }
 
@@ -55,7 +70,7 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
                 //{
                     if (obj.Symbol == _symbol && obj.Account == _account)
                     {
-                        var item = this.Items.Where(x => x.Side == obj.Side && x.Position.Id == obj.Id);
+                        var item = this.Items.Where(x => x.Side == obj.Side && x.Position != null && x.Position.Id == obj.Id);
                         if (item.Any())
                         {
                             foreach (var i in item)
@@ -186,7 +201,34 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
 
         public override void UpdateSl(TpSlItemPosition item, Func<double, double> updateFunction)
         {
-            throw new NotImplementedException();
+            if (item == null)
+                throw new ArgumentNullException(nameof(item));
+            if (item.Position == null || item.Position.StopLoss == null)
+                return;
+
+            var slOrderId = item.Position.StopLoss.Id;
+            var oRder = Core.Instance.Orders.FirstOrDefault(x => x.Id == slOrderId);
+            if (oRder == null)
+                return;
+
+            var newTriggerPrice = updateFunction(oRder.TriggerPrice);
+            var newPrice = updateFunction(oRder.Price);
+
+            double Snap(double p)
+            {
+                try
+                {
+                    var ts = _symbol?.TickSize ?? 0;
+                    return ts > 0 ? Math.Round(p / ts) * ts : p;
+                }
+                catch { return p; }
+            }
+
+            newTriggerPrice = Snap(newTriggerPrice);
+            newPrice = Snap(newPrice);
+
+            if (oRder.TriggerPrice != newTriggerPrice || oRder.Price != newPrice)
+                Core.Instance.ModifyOrder(oRder, triggerPrice: newTriggerPrice, price: newPrice);
         }
 
         public override void UpdateTp(TpSlItemPosition item, Func<double, double> updateFunction)

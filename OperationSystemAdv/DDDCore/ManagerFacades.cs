@@ -109,16 +109,10 @@ namespace DivergentStrV0_1.OperationSystemAdv.DDDCore
     {
         public static IManagerFacade Create(ManagerType type)
         {
-            switch (type)
-            {
-                case ManagerType.LegacyOrdersBased:
-                    return new TpSlManagerFacade(GlobalTpSlManager.Instance);
-                case ManagerType.PositionBased:
-                    return new PositionManagerFacade(new TpSlPositionManager());
-                case ManagerType.OrdersHistoryBased:
-                default:
-                    return new ManagerDueFacade(Utils.GlobalTpSlManagerDue.Instance);
-            }
+            // Slim-down: always use the position-based manager to avoid duplicated pipelines
+            if (type != ManagerType.PositionBased)
+                global::DivergentStrV0_1.Utils.AppLog.System("Managers", $"Requested {type}, using PositionBased for slim-down.");
+            return new PositionManagerFacade(new TpSlPositionManager());
         }
     }
 }

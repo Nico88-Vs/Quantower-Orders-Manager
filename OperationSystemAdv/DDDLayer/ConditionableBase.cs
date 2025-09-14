@@ -13,7 +13,7 @@ namespace DivergentStrV0_1.OperationSystemAdv
     public abstract class ConditionableBase<T> : IConditionable , IDisposable
     {
         protected List<OrderType> _allowedOrdersType;
-        public ManagerType ManagerChoice { get; protected set; } = ManagerType.OrdersHistoryBased;
+        public ManagerType ManagerChoice { get; protected set; } = ManagerType.PositionBased;
         public virtual IManagerFacade _manager { get; private set; }
 
         public virtual PerformanceMetrics Metrics { get; private set; }
@@ -28,7 +28,8 @@ namespace DivergentStrV0_1.OperationSystemAdv
         public ISlTpStrategy<T> Strategy { get; private set; }
         public HystoryDataProvider HistoryProvider { get; protected set; }
 
-        public List<string> RegistredGuid => new();
+        // Persisted register of item IDs tied to this strategy instance
+        public List<string> RegistredGuid { get; } = new();
 
         protected ConditionableBase()
         {
@@ -322,9 +323,14 @@ namespace DivergentStrV0_1.OperationSystemAdv
 
                 //📝 TODO: [HIGH] Aggiungere try-catch per gestire errori durante update
                 //📝 TODO: [MEDIUM] Aggiungere logging per ogni SL/TP update
+
+                #region 🧪 HACK [Soluzione temporanea o definitiva ]
+                //ho rimosso il vincolo alla guid per il tentativo d update sl
+                #endregion
+
                 if (isSl)
                 {
-                    foreach (var item in GetActiveGuid())
+                    foreach (var item in _manager.Items)
                     {
                         //📝 TODO: [HIGH] Verificare che UpdateSl non lanci NotImplementedException
                         _manager.UpdateSl(item, this.Strategy.UpdateSl(marketData, item));

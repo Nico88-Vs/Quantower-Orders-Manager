@@ -14,6 +14,7 @@ namespace DivergentStrV0_1.Strategies
 
         public double SlTriggerPrice { get; set; }
         public double currentPrice { get; set; }
+        public double AtrInTicks { get; set; }
     }
 
     internal class RowanSlTpStrategy : ISlTpStrategy<SlTpData>
@@ -26,6 +27,7 @@ namespace DivergentStrV0_1.Strategies
         public int min_slInTicks { get; set; }
 
         public int MinTpInTicks { get; set; }
+        public double AtrSlippageMultiplier { get; set; } = 0.0; // 0.0 - 2.0
         private int delta_InTicks;
         
         //📝 TODO: [CRITICAL] Aggiungere: public double AtrMultiplier { get; set; }
@@ -56,7 +58,10 @@ namespace DivergentStrV0_1.Strategies
             
             var sl_temp = marketData.Symbol.CalculateTicks(entry_price, marketData.SlTriggerPrice);
 
-            var sl = Math.Abs(sl_temp) > max_slInTicks ? max_slInTicks : sl_temp;
+            // ATR-based slippage in ticks, clamped multiplier
+            var extraTicks = Math.Max(0, (int)Math.Round(Math.Abs(marketData.AtrInTicks) * Math.Max(0.0, Math.Min(2.0, this.AtrSlippageMultiplier))));
+            var desiredAbsTicks = Math.Abs(sl_temp) + extraTicks;
+            var sl = (int)Math.Clamp(Math.Ceiling(desiredAbsTicks), this.min_slInTicks, this.max_slInTicks);
 
             double sl_price  = side == Side.Buy ? marketData.Symbol.CalculatePrice(entry_price , -sl) :
                 marketData.Symbol.CalculatePrice(entry_price, + sl);

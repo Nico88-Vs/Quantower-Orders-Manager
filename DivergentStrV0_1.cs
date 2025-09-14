@@ -5,12 +5,9 @@ using DivergentStrV0_1.Strategies;
 using DivergentStrV0_1.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Linq;
-using System.Reflection;
 using TradingPlatform.BusinessLayer;
-using static System.Collections.Specialized.BitVector32;
 
 namespace DivergentStrV0_1
 {
@@ -38,6 +35,7 @@ namespace DivergentStrV0_1
         private int _uiAtrLen = 14;
         private bool _uiAtrNormalize = true;
         private double _uiAtrSlopeThr = 0.015; // 1.5%
+        private double _uiAtrSlippageMultiplier = 0.0; // 0.0 - 2.0, per Stop Strategy
 
         // ====== Backing fields UI per Delta (solo UI: collega alla tua logica quando vuoi)
         private bool _uiDeltaUseMedian = false;
@@ -55,6 +53,12 @@ namespace DivergentStrV0_1
         private double _maxSlInTicks = 100;
         private double _maxTpInTicks = 1000;
         private bool _debugMode = false;
+        private int _maxOpen = 3;
+        private int _minTradeSign = 2;
+        private int _minCloseSign = 1;
+        private double _maxSessionLossUsd = 100;
+        private int _verbosityFrequency = 3;
+        private int _slippageAtrPeriod = 14; // default allineato a _uiAtrLen
 
         [InputParameter("Symbol", 0)]
         public Symbol _Symbol;
@@ -123,32 +127,69 @@ namespace DivergentStrV0_1
             this.AtrIndicator = Core.Instance.Indicators.CreateIndicator(Core.Instance.Indicators.All.FirstOrDefault(x => x.Name == "RVOL (evolved)"));
             this.DeltaIndicato = Core.Instance.Indicators.CreateIndicator(Core.Instance.Indicators.All.FirstOrDefault(x => x.Name == "DeltaBasedIndicators"));
 
-            // Set indicator parameters
+            // Set indicator parameters from Settings / Input defaults
+            this.AtrIndicator.Settings = new List<SettingItem>
+            {
+                new SettingItemInteger("ATR Length", _uiAtrLen),
+                new SettingItemBoolean("Use ATR Normalization", _uiAtrNormalize),
+                new SettingItemDouble("Slope Threshold (norm.)", _uiAtrSlopeThr)
+            };
             this.DeltaIndicato.Settings = new List<SettingItem>
             {
-                new SettingItemBoolean("Force Volume Ready", true)
+                new SettingItemBoolean("Force Volume Ready", true),
+                new SettingItemBoolean("Delta: Use Median", _uiDeltaUseMedian),
+                new SettingItemInteger("Delta: Lookback", _uiDeltaLookback),
+                new SettingItemDouble("Delta: Threshold Multiplier", _uiDeltaThresholdMult),
+                new SettingItemInteger("Delta Strength: Lookback", _uiDeltaStrengthLookback),
+                new SettingItemDouble("Delta Strength: Threshold Multiplier", _uiDeltaStrengthMult)
             };
 
             if (!this._conditionable.Initialized)
             {
                 var req = new HistoryRequestParameters()
                 {
-                    Aggregation = new HistoryAggregationTime(Period.MIN1, HistoryType.Last),
+                    Aggregation = new HistoryAggregationTime(this._period, HistoryType.Last),
                     FromTime = this._fomTime,
                     ToTime = default,
                     Symbol = this._Symbol,
 
                 };
 
-                foreach (var s in OffMarketUtc.Build())
-                    StaticSessionManager.AddSession(s, Utils.SessionType.Target);
+                // Sessions: use defaults or bind custom sessions from settings
+                if (this._UseDefaultSessions || this._CustomSessionsCount == 0 || this._CustomSessions.Count == 0)
+                {
+                    foreach (var s in OffMarketUtc.Build())
+                        StaticSessionManager.AddSession(s, Utils.SessionType.Target);
 
-                foreach (var sv in InMarketUtc.Build())
-                    StaticSessionManager.AddSession(sv, Utils.SessionType.Trade);
+                    foreach (var sv in InMarketUtc.Build())
+                        StaticSessionManager.AddSession(sv, Utils.SessionType.Trade);
+                }
+                else
+                {
+                    foreach (var cs in this._CustomSessions)
+                        StaticSessionManager.AddSession(cs, Utils.SessionType.Trade);
+                }
 
-                this._strategy = new RowanStrategy(this.DeltaIndicato, this.AtrIndicator, 3, 10000, 2, 1, 100, 3);
-                this._strategy.InjectStrategy(new RowanSlTpStrategy(100,500));
-                this._strategy.Init(req, this._Account, true);
+                this._strategy = new RowanStrategy(
+                    this.DeltaIndicato,
+                    this.AtrIndicator,
+                    this._maxOpen,
+                    this._quantity,
+                    this._minTradeSign,
+                    this._minCloseSign,
+                    this._maxSessionLossUsd,
+                    this._verbosityFrequency,
+                    Math.Max(1, this._slippageAtrPeriod));
+
+                var sltp = new RowanSlTpStrategy(
+                    (int)Math.Round(this._minSlInTicks),
+                    (int)Math.Round(this._maxSlInTicks))
+                {
+                    MinTpInTicks = (int)Math.Max(1, Math.Round(this._maxTpInTicks)),
+                    AtrSlippageMultiplier = Math.Max(0.0, Math.Min(2.0, this._uiAtrSlippageMultiplier))
+                };
+                this._strategy.InjectStrategy(sltp);
+                this._strategy.Init(req, this._Account, this._inputDebugMode);
                 this._conditionable = _strategy;
 
             }
@@ -275,6 +316,71 @@ namespace DivergentStrV0_1
                     Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
                 });
 
+                settings.Add(new SettingItemInteger("Max Open Positions", _maxOpen)
+                {
+                    Text = "Max Open Positions",
+                    SortIndex = 3006,
+                    Minimum = 1,
+                    Maximum = 100,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
+
+                settings.Add(new SettingItemInteger("Min Trade Signal", _minTradeSign)
+                {
+                    Text = "Min Trade Signal",
+                    SortIndex = 3007,
+                    Minimum = 0,
+                    Maximum = 100,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
+
+                settings.Add(new SettingItemInteger("Min Close Signal", _minCloseSign)
+                {
+                    Text = "Min Close Signal",
+                    SortIndex = 3008,
+                    Minimum = 0,
+                    Maximum = 100,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
+
+                settings.Add(new SettingItemDouble("Max Session Loss USD", _maxSessionLossUsd)
+                {
+                    Text = "Max Session Loss USD",
+                    SortIndex = 3009,
+                    Minimum = -1000000,
+                    Maximum = 1000000,
+                    Increment = 0.01,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
+
+                settings.Add(new SettingItemInteger("Verbosity Frequency", _verbosityFrequency)
+                {
+                    Text = "Verbosity Frequency",
+                    SortIndex = 3010,
+                    Minimum = 0,
+                    Maximum = 1000,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
+
+                settings.Add(new SettingItemInteger("Slippage ATR Period", _slippageAtrPeriod)
+                {
+                    Text = "Slippage ATR Period",
+                    SortIndex = 3011,
+                    Minimum = 1,
+                    Maximum = 1000,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
+
+                settings.Add(new SettingItemDouble("ATR Slippage Multiplier", _uiAtrSlippageMultiplier)
+                {
+                    Text = "ATR Slippage Multiplier",
+                    SortIndex = 3012,
+                    Minimum = 0.0,
+                    Maximum = 2.0,
+                    Increment = 0.01,
+                    Relation = new SettingItemRelationVisibility(KEY_STRAT, true)
+                });
+
                 #endregion
 
                 #region atr // ===== 400x — ATR =====
@@ -309,6 +415,8 @@ namespace DivergentStrV0_1
                     Increment = 0.001,
                     Relation = new SettingItemRelationVisibility(KEY_ATR, true)
                 });
+
+                
                 #endregion
 
                 #region// ===== 500x — Delta =====
@@ -461,6 +569,30 @@ namespace DivergentStrV0_1
                 {
                     _maxTpInTicks = Math.Max(1, maxTp); // Ensure positive TP
                 }
+                if (value.TryGetValue("Max Open Positions", out int maxOpen))
+                {
+                    _maxOpen = Math.Max(1, maxOpen);
+                }
+                if (value.TryGetValue("Min Trade Signal", out int mts))
+                {
+                    _minTradeSign = Math.Max(0, mts);
+                }
+                if (value.TryGetValue("Min Close Signal", out int mcs))
+                {
+                    _minCloseSign = Math.Max(0, mcs);
+                }
+                if (value.TryGetValue("Max Session Loss USD", out double msu))
+                {
+                    _maxSessionLossUsd = msu;
+                }
+                if (value.TryGetValue("Verbosity Frequency", out int vf))
+                {
+                    _verbosityFrequency = Math.Max(0, vf);
+                }
+                if (value.TryGetValue("Slippage ATR Period", out int sap))
+                {
+                    _slippageAtrPeriod = Math.Max(1, sap);
+                }
                 if (value.TryGetValue("Debug", out bool debugMode)) 
                 {
                     _debugMode = debugMode;
@@ -472,6 +604,7 @@ namespace DivergentStrV0_1
                 if (value.TryGetValue("ATR Length", out int atrLen)) _uiAtrLen = atrLen;
                 if (value.TryGetValue("Use ATR Normalization", out bool atrNorm)) _uiAtrNormalize = atrNorm;
                 if (value.TryGetValue("Slope Threshold (norm.)", out double atrThr)) _uiAtrSlopeThr = atrThr;
+                if (value.TryGetValue("ATR Slippage Multiplier", out double atrSlip)) _uiAtrSlippageMultiplier = Math.Max(0.0, Math.Min(2.0, atrSlip));
 
                 // ===== Delta =====
                 if (value.TryGetValue(KEY_DELTA, out bool showDelta)) _uiShowDelta = showDelta;
